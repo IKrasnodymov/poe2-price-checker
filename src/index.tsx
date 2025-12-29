@@ -27,7 +27,12 @@ import {
   FaBolt,
   FaFire,
   FaSnowflake,
-  FaMagic
+  FaMagic,
+  FaHistory,
+  FaArrowUp,
+  FaArrowDown,
+  FaMinus,
+  FaTrash,
 } from "react-icons/fa";
 
 import {
@@ -46,6 +51,10 @@ import {
   TieredSearchResult,
   SearchTier,
   PoeNinjaResult,
+  ScanHistoryRecord,
+  ScanHistoryResult,
+  PriceDynamicsResult,
+  PriceDynamicsEntry,
 } from "./lib/types";
 import { parseItemText, getPoeNinjaItemType, getItemDisplayName, getAllModifiers } from "./lib/itemParser";
 import { formatPrice, getBestPrice, matchModifier, getModifierPriority } from "./utils/modifierMatcher";
@@ -285,6 +294,482 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ onBack }) => {
           </>
         )}
       </PanelSection>
+    </>
+  );
+};
+
+// =========================================================================
+// HISTORY PANEL COMPONENT
+// =========================================================================
+
+interface HistoryPanelProps {
+  onBack: () => void;
+  onSelectItem: (record: ScanHistoryRecord) => void;
+  settingsDir: string;
+}
+
+const HistoryPanel: FC<HistoryPanelProps> = ({ onBack, onSelectItem, settingsDir }) => {
+  const [history, setHistory] = useState<ScanHistoryRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    setIsLoading(true);
+    try {
+      const result = await call<[number | null], ScanHistoryResult>(
+        "get_scan_history",
+        null
+      );
+      if (result.success && result.records) {
+        setHistory(result.records);
+      } else {
+        setError(result.error || "Failed to load history");
+      }
+    } catch (e) {
+      setError(`Error: ${e}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearHistory = async () => {
+    try {
+      await call<[], { success: boolean }>("clear_scan_history");
+      setHistory([]);
+    } catch (e) {
+      console.error("Failed to clear history:", e);
+    }
+  };
+
+  const formatTimeAgo = (timestamp: number): string => {
+    const seconds = Math.floor(Date.now() / 1000 - timestamp);
+    if (seconds < 60) return "just now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
+
+  const getRarityColor = (rarity: string): string => {
+    return RARITY_COLORS[rarity] || "#fff";
+  };
+
+  if (isLoading) {
+    return (
+      <PanelSection title="Scan History">
+        <PanelSectionRow>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Spinner />
+            <span>Loading history...</span>
+          </div>
+        </PanelSectionRow>
+      </PanelSection>
+    );
+  }
+
+  return (
+    <>
+      <PanelSection>
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={onBack}>
+            <FaArrowLeft style={{ marginRight: 8 }} />
+            Back to Price Check
+          </ButtonItem>
+        </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection title={`Scan History (${history.length})`}>
+        {error && (
+          <PanelSectionRow>
+            <div style={{ color: "#ff6b6b", padding: 8 }}>{error}</div>
+          </PanelSectionRow>
+        )}
+
+        {history.length === 0 ? (
+          <PanelSectionRow>
+            <div style={{ padding: 8, color: "#888" }}>
+              No items scanned yet. Copy an item with Ctrl+C and check its price.
+            </div>
+          </PanelSectionRow>
+        ) : (
+          <>
+            {history.map((record) => (
+              <PanelSectionRow key={record.id}>
+                <div
+                  onClick={() => onSelectItem(record)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 4px",
+                    cursor: "pointer",
+                    borderRadius: 4,
+                    width: "100%",
+                  }}
+                >
+                  {/* Item Icon - use CDN URL directly (file:// doesn't work in Decky webview) */}
+                  {record.iconUrl ? (
+                    <img
+                      src={record.iconUrl}
+                      alt=""
+                      style={{
+                        maxWidth: 40,
+                        maxHeight: 40,
+                        width: "auto",
+                        height: "auto",
+                        borderRadius: 4,
+                        background: "rgba(0,0,0,0.3)",
+                        padding: 2,
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        background: "rgba(255,255,255,0.1)",
+                        borderRadius: 4,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <FaCoins size={14} style={{ color: "#666" }} />
+                    </div>
+                  )}
+
+                  {/* Item Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        color: getRarityColor(record.rarity),
+                        fontWeight: "bold",
+                        fontSize: 12,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {record.itemName || record.basetype}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#666" }}>
+                      {formatTimeAgo(record.timestamp)}
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div
+                      style={{
+                        color: "#ffd700",
+                        fontWeight: "bold",
+                        fontSize: 13,
+                      }}
+                    >
+                      {formatPrice(
+                        record.priceData.medianPrice,
+                        record.priceData.currency
+                      )}
+                    </div>
+                    <div style={{ fontSize: 9, color: "#666" }}>
+                      {record.listingsCount} listings
+                    </div>
+                  </div>
+                </div>
+              </PanelSectionRow>
+            ))}
+
+            {/* Clear History Button */}
+            <PanelSectionRow>
+              <ButtonItem
+                layout="below"
+                onClick={clearHistory}
+              >
+                <FaTrash style={{ marginRight: 8 }} />
+                Clear History
+              </ButtonItem>
+            </PanelSectionRow>
+          </>
+        )}
+      </PanelSection>
+    </>
+  );
+};
+
+// =========================================================================
+// PRICE DYNAMICS PANEL COMPONENT
+// =========================================================================
+
+interface PriceDynamicsPanelProps {
+  record: ScanHistoryRecord;
+  onBack: () => void;
+  settingsDir: string;
+}
+
+const PriceDynamicsPanel: FC<PriceDynamicsPanelProps> = ({ record, onBack, settingsDir }) => {
+  const [dynamics, setDynamics] = useState<PriceDynamicsEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
+  const [priceChangePercent24h, setPriceChangePercent24h] = useState<number | null>(null);
+
+  useEffect(() => {
+    loadDynamics();
+  }, [record]);
+
+  const loadDynamics = async () => {
+    setIsLoading(true);
+    try {
+      const result = await call<[string, string, string], PriceDynamicsResult>(
+        "get_price_dynamics",
+        record.itemName,
+        record.basetype,
+        record.rarity
+      );
+      if (result.success) {
+        setDynamics(result.dynamics);
+        setPriceChange24h(result.priceChange24h ?? null);
+        setPriceChangePercent24h(result.priceChangePercent24h ?? null);
+      }
+    } catch (e) {
+      console.error("Failed to load dynamics:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTimeAgo = (timestamp: number): string => {
+    const seconds = Math.floor(Date.now() / 1000 - timestamp);
+    if (seconds < 60) return "just now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
+
+  const TrendIcon: FC<{ trend?: string }> = ({ trend }) => {
+    if (trend === "up") return <FaArrowUp style={{ color: "#40c057" }} />;
+    if (trend === "down") return <FaArrowDown style={{ color: "#ff6b6b" }} />;
+    return <FaMinus style={{ color: "#868e96" }} />;
+  };
+
+  const rarityColor = RARITY_COLORS[record.rarity] || "#fff";
+
+  return (
+    <>
+      <PanelSection>
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={onBack}>
+            <FaArrowLeft style={{ marginRight: 8 }} />
+            Back to History
+          </ButtonItem>
+        </PanelSectionRow>
+      </PanelSection>
+
+      {/* Item Header with Icon */}
+      <PanelSection title="Item Details">
+        <PanelSectionRow>
+          <div style={{ padding: 8, display: "flex", gap: 12, alignItems: "flex-start" }}>
+            {/* Icon - use CDN URL directly */}
+            {record.iconUrl && (
+              <img
+                src={record.iconUrl}
+                alt=""
+                style={{
+                  maxWidth: 56,
+                  maxHeight: 56,
+                  width: "auto",
+                  height: "auto",
+                  borderRadius: 4,
+                  background: "rgba(0,0,0,0.3)",
+                  padding: 4,
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
+            {/* Info */}
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  color: rarityColor,
+                  fontWeight: "bold",
+                  fontSize: 14,
+                  marginBottom: 4,
+                }}
+              >
+                {record.itemName || record.basetype}
+              </div>
+              {record.itemName && record.basetype && record.itemName !== record.basetype && (
+                <div style={{ color: "#888", fontSize: 11 }}>{record.basetype}</div>
+              )}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  marginTop: 8,
+                  fontSize: 11,
+                  color: "#aaa",
+                }}
+              >
+                {record.itemLevel && <span>iLvl {record.itemLevel}</span>}
+                {record.quality && <span>Q{record.quality}%</span>}
+                {record.corrupted && (
+                  <span style={{ color: "#d20000" }}>Corrupted</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </PanelSectionRow>
+      </PanelSection>
+
+      {/* Current Price */}
+      <PanelSection title="Current Price">
+        <PanelSectionRow>
+          <div style={{ padding: 8 }}>
+            <div
+              style={{
+                fontSize: 24,
+                fontWeight: "bold",
+                color: "#ffd700",
+                textAlign: "center",
+              }}
+            >
+              {formatPrice(
+                record.priceData.medianPrice,
+                record.priceData.currency
+              )}
+            </div>
+            {priceChange24h !== null && priceChangePercent24h !== null && (
+              <div
+                style={{
+                  textAlign: "center",
+                  marginTop: 8,
+                  fontSize: 12,
+                  color:
+                    priceChangePercent24h > 0
+                      ? "#40c057"
+                      : priceChangePercent24h < 0
+                      ? "#ff6b6b"
+                      : "#888",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
+              >
+                {priceChangePercent24h > 0 ? (
+                  <FaArrowUp />
+                ) : priceChangePercent24h < 0 ? (
+                  <FaArrowDown />
+                ) : null}
+                <span>
+                  {priceChangePercent24h > 0 ? "+" : ""}
+                  {priceChangePercent24h}% (24h)
+                </span>
+              </div>
+            )}
+          </div>
+        </PanelSectionRow>
+      </PanelSection>
+
+      {/* Price History */}
+      <PanelSection title={`Price History (${dynamics.length})`}>
+        {isLoading ? (
+          <PanelSectionRow>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Spinner />
+              <span>Loading...</span>
+            </div>
+          </PanelSectionRow>
+        ) : dynamics.length === 0 ? (
+          <PanelSectionRow>
+            <div style={{ padding: 8, color: "#888" }}>
+              No price history available yet.
+            </div>
+          </PanelSectionRow>
+        ) : (
+          dynamics
+            .slice()
+            .reverse()
+            .slice(0, 10)
+            .map((entry, i) => (
+              <PanelSectionRow key={i}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "6px 8px",
+                    width: "100%",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <TrendIcon trend={entry.trend} />
+                    <span style={{ color: "#ffd700", fontWeight: "bold" }}>
+                      {formatPrice(entry.price, entry.currency)}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    {entry.changePercent !== undefined && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color:
+                            entry.changePercent > 0
+                              ? "#40c057"
+                              : entry.changePercent < 0
+                              ? "#ff6b6b"
+                              : "#888",
+                          marginRight: 8,
+                        }}
+                      >
+                        {entry.changePercent > 0 ? "+" : ""}
+                        {entry.changePercent}%
+                      </span>
+                    )}
+                    <span style={{ fontSize: 10, color: "#666" }}>
+                      {formatTimeAgo(entry.timestamp)}
+                    </span>
+                  </div>
+                </div>
+              </PanelSectionRow>
+            ))
+        )}
+      </PanelSection>
+
+      {/* Modifiers Summary */}
+      {(record.implicitMods.length > 0 ||
+        record.explicitMods.length > 0 ||
+        record.craftedMods.length > 0) && (
+        <PanelSection title="Modifiers">
+          <PanelSectionRow>
+            <div style={{ padding: 8, fontSize: 10, color: "#aaa" }}>
+              {record.implicitMods.map((mod, i) => (
+                <div key={`imp-${i}`} style={{ color: "#88f", marginBottom: 2 }}>
+                  {mod}
+                </div>
+              ))}
+              {record.explicitMods.map((mod, i) => (
+                <div key={`exp-${i}`} style={{ marginBottom: 2 }}>
+                  {mod}
+                </div>
+              ))}
+              {record.craftedMods.map((mod, i) => (
+                <div key={`cra-${i}`} style={{ color: "#b8f", marginBottom: 2 }}>
+                  {mod}
+                </div>
+              ))}
+            </div>
+          </PanelSectionRow>
+        </PanelSection>
+      )}
     </>
   );
 };
@@ -1175,12 +1660,15 @@ const PriceCheckContent: FC = () => {
   const [priceResult, setPriceResult] = useState<PriceResult | null>(null);
   const [tieredResult, setTieredResult] = useState<TieredSearchResult | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<ScanHistoryRecord | null>(null);
+  const [settingsDir, setSettingsDir] = useState<string>("");
   const [modifiers, setModifiers] = useState<ItemModifier[]>([]);
   const [autoChecked, setAutoChecked] = useState(false);
   const [settings, setSettings] = useState<PluginSettings>({ league: "Fate of the Vaal", useTradeApi: true, usePoeNinja: true, poesessid: "" });
   const checkPriceRef = useRef<(() => Promise<void>) | null>(null);
 
-  // Load settings on mount
+  // Load settings and settingsDir on mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -1190,7 +1678,18 @@ const PriceCheckContent: FC = () => {
         console.error("Failed to load settings:", e);
       }
     };
+    const loadSettingsDir = async () => {
+      try {
+        const result = await call<[], { success: boolean; path: string }>("get_settings_dir");
+        if (result.success) {
+          setSettingsDir(result.path);
+        }
+      } catch (e) {
+        console.error("Failed to load settings dir:", e);
+      }
+    };
     loadSettings();
+    loadSettingsDir();
   }, []);
 
   // Auto-check clipboard when plugin is opened (with delay to let refs initialize)
@@ -1254,7 +1753,7 @@ const PriceCheckContent: FC = () => {
 
     setTieredResult(result);
 
-    // Also save to price history if we have results
+    // Also save to price history and scan history if we have results
     if (result.success && result.tiers.length > 0) {
       const firstTierWithListings = result.tiers.find(t => t.listings && t.listings.length > 0);
       if (firstTierWithListings && firstTierWithListings.listings.length > 0) {
@@ -1281,11 +1780,14 @@ const PriceCheckContent: FC = () => {
         const values = byCurrency[dominantCurrency] || [];
         if (values.length > 0) {
           values.sort((a, b) => a - b);
+          const min = values[0];
+          const max = values[values.length - 1];
           const mid = Math.floor(values.length / 2);
           const median = values.length % 2 !== 0
             ? values[mid]
             : (values[mid - 1] + values[mid]) / 2;
 
+          // Save to price history (existing behavior)
           await call<[string, string, string, number, number, string], { success: boolean }>(
             "add_price_record",
             item.name,
@@ -1295,6 +1797,43 @@ const PriceCheckContent: FC = () => {
             values.length,
             dominantCurrency
           );
+
+          // Save to scan history (new feature)
+          // Get icon from ninja (for uniques) or trade API (for rares)
+          const iconUrl = result.ninja_price?.icon || result.trade_icon || null;
+          try {
+            await call<
+              [
+                string, string, string, string, number | null, number | null,
+                boolean, string[], string[], string[],
+                number, number, number, string, string,
+                string | null, number, number
+              ],
+              { success: boolean; id: string }
+            >(
+              "add_scan_record",
+              item.name,
+              item.basetype,
+              item.rarity,
+              item.itemClass,
+              item.itemLevel || null,
+              item.quality || null,
+              item.corrupted || false,
+              item.implicitMods.map((m) => m.text),
+              item.explicitMods.map((m) => m.text),
+              item.craftedMods.map((m) => m.text),
+              min,
+              max,
+              median,
+              dominantCurrency,
+              firstTierWithListings.tier <= 1 ? "trade" : "trade",
+              iconUrl,
+              result.stopped_at_tier,
+              firstTierWithListings.listings.length
+            );
+          } catch (e) {
+            console.error("Failed to save scan record:", e);
+          }
         }
       }
     }
@@ -1415,6 +1954,26 @@ const PriceCheckContent: FC = () => {
     }
   }, [parsedItem, modifiers, progressiveSearch]);
 
+  // History panels
+  if (showHistory) {
+    if (selectedHistoryItem) {
+      return (
+        <PriceDynamicsPanel
+          record={selectedHistoryItem}
+          onBack={() => setSelectedHistoryItem(null)}
+          settingsDir={settingsDir}
+        />
+      );
+    }
+    return (
+      <HistoryPanel
+        onBack={() => setShowHistory(false)}
+        onSelectItem={(record) => setSelectedHistoryItem(record)}
+        settingsDir={settingsDir}
+      />
+    );
+  }
+
   // Settings panel
   if (showSettings) {
     return <SettingsPanel onBack={() => setShowSettings(false)} />;
@@ -1444,6 +2003,13 @@ const PriceCheckContent: FC = () => {
           <ButtonItem layout="below" onClick={checkPrice} disabled={isLoading}>
             <FaClipboard style={{ marginRight: 8 }} />
             Check Clipboard Only
+          </ButtonItem>
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={() => setShowHistory(true)}>
+            <FaHistory style={{ marginRight: 8 }} />
+            Scan History
           </ButtonItem>
         </PanelSectionRow>
 

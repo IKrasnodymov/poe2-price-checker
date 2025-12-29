@@ -77,7 +77,7 @@ export interface ItemModifier {
 
 export interface PriceResult {
   success: boolean;
-  source: "poe.ninja" | "trade";
+  source: "poe2scout" | "trade";
   price?: {
     chaos?: number;
     exalted?: number;
@@ -107,7 +107,7 @@ export interface TradeListing {
 export interface PluginSettings {
   league: string;
   useTradeApi: boolean;
-  usePoeNinja: boolean;
+  usePoe2Scout: boolean;
   poesessid: string;
 }
 
@@ -140,7 +140,7 @@ export interface TradeListingsResult {
   error?: string;
 }
 
-export interface PoeNinjaResult {
+export interface Poe2ScoutResult {
   success: boolean;
   source: string;
   price?: {
@@ -153,6 +153,9 @@ export interface PoeNinjaResult {
   icon?: string;
   error?: string;
 }
+
+// Alias for backward compatibility
+export type PoeNinjaResult = Poe2ScoutResult;
 
 export interface LeaguesResult {
   success: boolean;
@@ -225,6 +228,7 @@ export interface TieredSearchResult {
   success: boolean;
   tiers: SearchTier[];
   ninja_price?: PoeNinjaResult;
+  trade_icon?: string;  // Icon URL from Trade API
   stopped_at_tier: number;
   total_searches: number;
   error?: string;
@@ -232,4 +236,62 @@ export interface TieredSearchResult {
 
 export interface ModifierWithPriority extends ItemModifier {
   priority?: number;
+}
+
+// =========================================================================
+// SCAN HISTORY TYPES
+// =========================================================================
+
+export interface ScanPriceData {
+  minPrice: number;
+  maxPrice: number;
+  medianPrice: number;
+  currency: string;
+  source: "trade" | "poe.ninja";
+}
+
+export interface ScanHistoryRecord {
+  id: string;
+  timestamp: number;
+  itemName: string;
+  basetype: string;
+  rarity: ItemRarity;
+  itemClass: string;
+  itemLevel?: number;
+  quality?: number;
+  corrupted?: boolean;
+  implicitMods: string[];
+  explicitMods: string[];
+  craftedMods: string[];
+  priceData: ScanPriceData;
+  iconUrl?: string;
+  localIconPath?: string;
+  searchTier: number;
+  listingsCount: number;
+}
+
+export interface ScanHistoryResult {
+  success: boolean;
+  records?: ScanHistoryRecord[];
+  count?: number;
+  error?: string;
+}
+
+export interface PriceDynamicsEntry {
+  timestamp: number;
+  price: number;
+  currency: string;
+  change?: number;
+  changePercent?: number;
+  trend?: "up" | "down" | "stable";
+}
+
+export interface PriceDynamicsResult {
+  success: boolean;
+  itemKey: string;
+  dynamics: PriceDynamicsEntry[];
+  currentPrice?: number;
+  priceChange24h?: number;
+  priceChangePercent24h?: number;
+  error?: string;
 }

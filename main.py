@@ -34,11 +34,18 @@ class Plugin:
     # Decky doesn't properly instantiate Plugin class, so we use class attributes
     settings: Dict[str, Any] = None  # type: ignore
     trade_limiter: RateLimiter = None  # type: ignore
-    ninja_limiter: RateLimiter = None  # type: ignore
+    poe2scout_limiter: RateLimiter = None  # type: ignore
     ssl_context = None
     stat_cache: Dict[str, str] = None  # type: ignore  # text pattern -> stat ID
     currency_rates: Dict[str, float] = None  # type: ignore  # currency -> chaos value
     price_history: Dict[str, List[Dict[str, Any]]] = None  # type: ignore  # item_key -> [price records]
+    scan_history: List[Dict[str, Any]] = None  # type: ignore  # List of scan records
+    MAX_SCAN_HISTORY = 50  # Keep last 50 scanned items
+    ICON_CACHE_DIR = "icon_cache"  # Subdirectory for cached icons
+
+    # poe2scout.com cache - loaded once at startup
+    poe2scout_cache: Dict[str, Any] = None  # type: ignore  # {items: {name: data}, currency: {apiId: data}}
+    poe2scout_divine_price: float = 100.0  # Divine price in exalted from /api/leagues
 
     # =========================================================================
     # LIFECYCLE METHODS
@@ -53,14 +60,14 @@ class Plugin:
         Plugin.settings = {
             "league": "Fate of the Vaal",
             "useTradeApi": True,
-            "usePoeNinja": True,
+            "usePoe2Scout": True,
             "poesessid": "",
         }
         Plugin.trade_limiter = RateLimiter(min_interval=2.5)  # 2.5s between requests to avoid 429
-        Plugin.ninja_limiter = RateLimiter(min_interval=0.5)
+        Plugin.poe2scout_limiter = RateLimiter(min_interval=1.0)  # 1s between poe2scout requests
         Plugin.stat_cache = {}
         Plugin.currency_rates = {
-            # Default rates (will be updated from poe.ninja)
+            # Default rates (will be updated from poe2scout)
             "chaos": 1.0,
             "chaos-orb": 1.0,
             "exalted": 50.0,  # 1 exalted = ~50 chaos
@@ -73,6 +80,7 @@ class Plugin:
             "alch": 0.1,
             "alchemy-orb": 0.1,
         }
+        Plugin.poe2scout_cache = {"items": {}, "currency": {}}
         # Use unverified SSL context (SteamOS may lack proper CA certs)
         Plugin.ssl_context = ssl.create_default_context()
         Plugin.ssl_context.check_hostname = False
@@ -84,11 +92,11 @@ class Plugin:
         except Exception as e:
             decky.logger.error(f"Failed to load stat IDs: {e}")
 
-        # Load currency rates from poe.ninja
+        # Load poe2scout cache (items + currency rates)
         try:
-            await Plugin.load_currency_rates(self)
+            await Plugin.load_poe2scout_cache(self)
         except Exception as e:
-            decky.logger.error(f"Failed to load currency rates: {e}")
+            decky.logger.error(f"Failed to load poe2scout cache: {e}")
 
         # Load price history
         Plugin.price_history = {}
@@ -96,6 +104,20 @@ class Plugin:
             await Plugin.load_price_history(self)
         except Exception as e:
             decky.logger.error(f"Failed to load price history: {e}")
+
+        # Load scan history
+        Plugin.scan_history = []
+        try:
+            await Plugin.load_scan_history(self)
+        except Exception as e:
+            decky.logger.error(f"Failed to load scan history: {e}")
+
+        # Ensure icon cache directory exists
+        try:
+            icon_cache_path = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, Plugin.ICON_CACHE_DIR)
+            os.makedirs(icon_cache_path, exist_ok=True)
+        except Exception as e:
+            decky.logger.error(f"Failed to create icon cache dir: {e}")
 
         # Load settings
         try:
@@ -356,52 +378,149 @@ class Plugin:
         # Default
         return 30
 
-    async def load_currency_rates(self) -> None:
-        """Load currency exchange rates from poe.ninja"""
+    async def load_poe2scout_cache(self) -> None:
+        """Load item prices and currency rates from poe2scout.com"""
         import decky
-        decky.logger.info("Loading currency rates from poe.ninja...")
+        decky.logger.info("Loading poe2scout cache...")
 
         league = self.settings.get("league", "Fate of the Vaal")
         league_encoded = urllib.parse.quote(league, safe='')
-        url = f"https://poe.ninja/api/data/currencyoverview?league=poe2%2F{league_encoded}&type=Currency"
 
+        # Step 1: Load leagues to get divine/exalted price ratio
         try:
+            leagues_url = "https://poe2scout.com/api/leagues"
             req = urllib.request.Request(
-                url,
+                leagues_url,
                 headers={
                     "User-Agent": "PoE2-Price-Checker-Decky/1.0",
                     "Accept": "application/json"
                 }
             )
-
             with urllib.request.urlopen(req, timeout=15, context=self.ssl_context) as response:
-                data = json.loads(response.read().decode())
+                leagues_data = json.loads(response.read().decode())
+                for lg in leagues_data:
+                    if lg.get("value") == league:
+                        Plugin.poe2scout_divine_price = lg.get("divinePrice", 100.0)
+                        chaos_divine = lg.get("chaosDivinePrice", 50.0)
+                        # Update currency rates based on poe2scout data
+                        # divinePrice is in exalted, chaosDivinePrice is chaos per divine
+                        Plugin.currency_rates["divine"] = chaos_divine
+                        Plugin.currency_rates["divine-orb"] = chaos_divine
+                        # Calculate exalted rate: divine_in_chaos / divine_in_exalted
+                        if Plugin.poe2scout_divine_price > 0:
+                            exalt_rate = chaos_divine / Plugin.poe2scout_divine_price
+                            Plugin.currency_rates["exalted"] = exalt_rate
+                            Plugin.currency_rates["exalted-orb"] = exalt_rate
+                        decky.logger.info(f"League {league}: divine={chaos_divine}c, exalted={Plugin.currency_rates.get('exalted', 'N/A')}c")
+                        break
+        except Exception as e:
+            decky.logger.error(f"Failed to load leagues: {e}")
 
-                for item in data.get("lines", []):
-                    name = item.get("currencyTypeName", "").lower()
-                    chaos_value = item.get("chaosEquivalent", 0)
+        # Step 2: Load all items for the league
+        try:
+            items_url = f"https://poe2scout.com/api/items?league={league_encoded}"
+            req = urllib.request.Request(
+                items_url,
+                headers={
+                    "User-Agent": "PoE2-Price-Checker-Decky/1.0",
+                    "Accept": "application/json"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=30, context=self.ssl_context) as response:
+                items_data = json.loads(response.read().decode())
 
-                    if chaos_value > 0:
-                        # Map currency names to our keys
-                        if "exalted" in name:
-                            Plugin.currency_rates["exalted"] = chaos_value
-                            Plugin.currency_rates["exalted-orb"] = chaos_value
-                        elif "divine" in name:
-                            Plugin.currency_rates["divine"] = chaos_value
-                            Plugin.currency_rates["divine-orb"] = chaos_value
-                        elif "regal" in name:
-                            Plugin.currency_rates["regal"] = chaos_value
-                            Plugin.currency_rates["regal-orb"] = chaos_value
-                        elif "alchemy" in name or "alch" in name:
-                            Plugin.currency_rates["alch"] = chaos_value
-                            Plugin.currency_rates["alchemy-orb"] = chaos_value
+                items_count = 0
+                currency_count = 0
 
-                decky.logger.info(f"Currency rates loaded: exalted={Plugin.currency_rates.get('exalted', 'N/A')}c, divine={Plugin.currency_rates.get('divine', 'N/A')}c")
+                for item in items_data:
+                    # Unique items have 'name' field, currency has 'apiId'
+                    if "name" in item and item.get("name"):
+                        # Unique item
+                        name_lower = item["name"].lower()
+                        Plugin.poe2scout_cache["items"][name_lower] = item
+                        items_count += 1
+                    elif "apiId" in item:
+                        # Currency item
+                        api_id = item["apiId"]
+                        Plugin.poe2scout_cache["currency"][api_id] = item
+                        currency_count += 1
+
+                decky.logger.info(f"poe2scout cache loaded: {items_count} items, {currency_count} currency")
 
         except Exception as e:
-            decky.logger.error(f"Failed to load currency rates: {e}")
+            decky.logger.error(f"Failed to load poe2scout items: {e}")
             import traceback
             decky.logger.error(traceback.format_exc())
+
+    def get_poe2scout_price(self, item_name: str, rarity: str = "Unique") -> Dict[str, Any]:
+        """
+        Get item price from poe2scout cache.
+        Returns price in chaos (converted from exalted).
+        """
+        import decky
+
+        if not self.settings.get("usePoe2Scout", True):
+            return {"success": False, "error": "poe2scout disabled in settings"}
+
+        if not Plugin.poe2scout_cache:
+            return {"success": False, "error": "poe2scout cache not loaded"}
+
+        name_lower = item_name.lower().strip() if item_name else ""
+
+        # Try to find in items cache (uniques)
+        if rarity == "Unique" and name_lower in Plugin.poe2scout_cache.get("items", {}):
+            item = Plugin.poe2scout_cache["items"][name_lower]
+            return Plugin._format_poe2scout_result(self, item)
+
+        # Try partial match for uniques
+        if rarity == "Unique":
+            for cached_name, item_data in Plugin.poe2scout_cache.get("items", {}).items():
+                if name_lower in cached_name or cached_name in name_lower:
+                    decky.logger.info(f"poe2scout partial match: '{name_lower}' -> '{cached_name}'")
+                    return Plugin._format_poe2scout_result(self, item_data)
+
+        # Try currency cache
+        for api_id, item_data in Plugin.poe2scout_cache.get("currency", {}).items():
+            item_text = item_data.get("text", "").lower()
+            if name_lower in item_text or item_text in name_lower:
+                return Plugin._format_poe2scout_result(self, item_data)
+
+        return {
+            "success": False,
+            "source": "poe2scout",
+            "error": f"Item '{item_name}' not found in poe2scout cache"
+        }
+
+    def _format_poe2scout_result(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Format poe2scout item data into standardized result"""
+        # poe2scout returns currentPrice in exalted by default
+        price_exalted = item.get("currentPrice", 0) or 0
+
+        # Convert to chaos
+        exalt_rate = Plugin.currency_rates.get("exalted", 1.0)
+        price_chaos = price_exalted * exalt_rate
+
+        # Get quantity from latest price log
+        price_logs = item.get("priceLogs", [])
+        quantity = 0
+        for log in price_logs:
+            if log and log.get("quantity"):
+                quantity = log["quantity"]
+                break
+
+        return {
+            "success": True,
+            "source": "poe2scout",
+            "price": {
+                "chaos": price_chaos,
+                "exalted": price_exalted,
+                "divine": price_exalted / Plugin.poe2scout_divine_price if Plugin.poe2scout_divine_price > 0 else 0,
+            },
+            "confidence": "high" if quantity >= 10 else "low",
+            "listings": quantity,
+            "icon": item.get("iconUrl"),
+            "error": None
+        }
 
     def convert_to_chaos(self, amount: float, currency: str) -> float:
         """Convert any currency amount to chaos equivalent"""
@@ -539,6 +658,333 @@ class Plugin:
         decky.logger.info("Price history cleared")
         return {"success": True}
 
+    # =========================================================================
+    # SCAN HISTORY (FULL ITEM RECORDS)
+    # =========================================================================
+
+    def _get_scan_history_path(self) -> str:
+        """Get path to scan history file"""
+        import decky
+        return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "scan_history.json")
+
+    def _get_icon_cache_path(self) -> str:
+        """Get path to icon cache directory"""
+        import decky
+        return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, Plugin.ICON_CACHE_DIR)
+
+    async def load_scan_history(self) -> None:
+        """Load scan history from file"""
+        import decky
+        history_path = Plugin._get_scan_history_path(self)
+
+        if os.path.exists(history_path):
+            try:
+                with open(history_path, "r") as f:
+                    Plugin.scan_history = json.load(f)
+                decky.logger.info(f"Loaded {len(Plugin.scan_history)} scan history records")
+            except Exception as e:
+                decky.logger.error(f"Failed to load scan history: {e}")
+                Plugin.scan_history = []
+        else:
+            Plugin.scan_history = []
+            decky.logger.info("No scan history file found, starting fresh")
+
+    async def save_scan_history(self) -> None:
+        """Save scan history to file"""
+        import decky
+        history_path = Plugin._get_scan_history_path(self)
+
+        try:
+            os.makedirs(os.path.dirname(history_path), exist_ok=True)
+            with open(history_path, "w") as f:
+                json.dump(Plugin.scan_history, f, indent=2)
+            decky.logger.info(f"Saved {len(Plugin.scan_history)} scan history records")
+        except Exception as e:
+            decky.logger.error(f"Failed to save scan history: {e}")
+
+    async def download_icon(self, icon_url: str, record_id: str) -> Optional[str]:
+        """Download icon from URL and cache locally"""
+        import decky
+
+        if not icon_url:
+            return None
+
+        try:
+            # Determine file extension from URL
+            ext = ".png"
+            if ".jpg" in icon_url or ".jpeg" in icon_url:
+                ext = ".jpg"
+            elif ".webp" in icon_url:
+                ext = ".webp"
+
+            # Create local path
+            filename = f"{record_id}{ext}"
+            icon_cache_path = Plugin._get_icon_cache_path(self)
+            os.makedirs(icon_cache_path, exist_ok=True)
+
+            relative_path = os.path.join(Plugin.ICON_CACHE_DIR, filename)
+            full_path = os.path.join(icon_cache_path, filename)
+
+            # Download with urllib
+            req = urllib.request.Request(
+                icon_url,
+                headers={
+                    "User-Agent": "PoE2-Price-Checker-Decky/1.0",
+                    "Accept": "image/*"
+                }
+            )
+
+            with urllib.request.urlopen(req, timeout=10, context=Plugin.ssl_context) as response:
+                with open(full_path, "wb") as f:
+                    f.write(response.read())
+
+            decky.logger.info(f"Downloaded icon to {relative_path}")
+            return relative_path
+
+        except Exception as e:
+            decky.logger.warning(f"Failed to download icon from {icon_url}: {e}")
+            return None
+
+    async def add_scan_record(
+        self,
+        item_name: str,
+        basetype: str,
+        rarity: str,
+        item_class: str,
+        item_level: Optional[int],
+        quality: Optional[int],
+        corrupted: bool,
+        implicit_mods: List[str],
+        explicit_mods: List[str],
+        crafted_mods: List[str],
+        min_price: float,
+        max_price: float,
+        median_price: float,
+        currency: str,
+        source: str,
+        icon_url: Optional[str],
+        search_tier: int,
+        listings_count: int
+    ) -> Dict[str, Any]:
+        """Add a new scan record to history"""
+        import decky
+        import uuid
+
+        # Generate unique ID
+        record_id = f"{int(time.time())}-{uuid.uuid4().hex[:8]}"
+
+        # Download icon if URL provided
+        local_icon_path = None
+        if icon_url:
+            try:
+                local_icon_path = await Plugin.download_icon(self, icon_url, record_id)
+            except Exception as e:
+                decky.logger.warning(f"Failed to download icon: {e}")
+
+        record = {
+            "id": record_id,
+            "timestamp": int(time.time()),
+            "itemName": item_name,
+            "basetype": basetype,
+            "rarity": rarity,
+            "itemClass": item_class,
+            "itemLevel": item_level,
+            "quality": quality,
+            "corrupted": corrupted,
+            "implicitMods": implicit_mods,
+            "explicitMods": explicit_mods,
+            "craftedMods": crafted_mods,
+            "priceData": {
+                "minPrice": min_price,
+                "maxPrice": max_price,
+                "medianPrice": median_price,
+                "currency": currency,
+                "source": source
+            },
+            "iconUrl": icon_url,
+            "localIconPath": local_icon_path,
+            "searchTier": search_tier,
+            "listingsCount": listings_count
+        }
+
+        # Add to beginning of list (newest first)
+        Plugin.scan_history.insert(0, record)
+
+        # Trim to max size and clean up old icons
+        if len(Plugin.scan_history) > Plugin.MAX_SCAN_HISTORY:
+            removed = Plugin.scan_history[Plugin.MAX_SCAN_HISTORY:]
+            Plugin.scan_history = Plugin.scan_history[:Plugin.MAX_SCAN_HISTORY]
+
+            # Clean up icons for removed records
+            for old_record in removed:
+                if old_record.get("localIconPath"):
+                    try:
+                        icon_path = os.path.join(
+                            decky.DECKY_PLUGIN_SETTINGS_DIR,
+                            old_record["localIconPath"]
+                        )
+                        if os.path.exists(icon_path):
+                            os.remove(icon_path)
+                            decky.logger.info(f"Removed old icon: {old_record['localIconPath']}")
+                    except Exception as e:
+                        decky.logger.warning(f"Failed to remove old icon: {e}")
+
+        # Save to file
+        await Plugin.save_scan_history(self)
+
+        decky.logger.info(f"Added scan record: {item_name} ({median_price} {currency})")
+        return {"success": True, "id": record_id}
+
+    async def get_scan_history(self, limit: Optional[int] = None) -> Dict[str, Any]:
+        """Get scan history records"""
+        records = Plugin.scan_history or []
+        if limit:
+            records = records[:limit]
+
+        return {
+            "success": True,
+            "records": records,
+            "count": len(records)
+        }
+
+    async def get_scan_record(self, record_id: str) -> Dict[str, Any]:
+        """Get a specific scan record by ID"""
+        for record in Plugin.scan_history or []:
+            if record.get("id") == record_id:
+                return {"success": True, "record": record}
+
+        return {"success": False, "error": "Record not found"}
+
+    async def clear_scan_history(self) -> Dict[str, Any]:
+        """Clear all scan history and cached icons"""
+        import decky
+        import shutil
+
+        # Remove all cached icons
+        icon_cache_path = Plugin._get_icon_cache_path(self)
+        try:
+            if os.path.exists(icon_cache_path):
+                shutil.rmtree(icon_cache_path)
+                os.makedirs(icon_cache_path, exist_ok=True)
+                decky.logger.info("Icon cache cleared")
+        except Exception as e:
+            decky.logger.warning(f"Failed to clear icon cache: {e}")
+
+        Plugin.scan_history = []
+        await Plugin.save_scan_history(self)
+
+        decky.logger.info("Scan history cleared")
+        return {"success": True}
+
+    async def get_price_dynamics(
+        self,
+        item_name: str,
+        basetype: str,
+        rarity: str
+    ) -> Dict[str, Any]:
+        """Get price dynamics for an item from scan history and price history"""
+        import decky
+
+        dynamics = []
+
+        # Find matching records from scan history
+        for record in Plugin.scan_history or []:
+            # Match by name for uniques, basetype for others
+            if rarity == "Unique":
+                if record.get("itemName", "").lower() == item_name.lower():
+                    price_data = record.get("priceData", {})
+                    dynamics.append({
+                        "timestamp": record.get("timestamp"),
+                        "price": price_data.get("medianPrice", 0),
+                        "currency": price_data.get("currency", "chaos"),
+                        "source": "scan"
+                    })
+            else:
+                if record.get("basetype", "").lower() == basetype.lower():
+                    price_data = record.get("priceData", {})
+                    dynamics.append({
+                        "timestamp": record.get("timestamp"),
+                        "price": price_data.get("medianPrice", 0),
+                        "currency": price_data.get("currency", "chaos"),
+                        "source": "scan"
+                    })
+
+        # Also check price_history for older records
+        key = Plugin._make_item_key(self, item_name, basetype, rarity)
+        historical = Plugin.price_history.get(key, []) if Plugin.price_history else []
+
+        for record in historical:
+            dynamics.append({
+                "timestamp": record.get("timestamp"),
+                "price": record.get("median_price", 0),
+                "currency": record.get("currency", "chaos"),
+                "source": "history"
+            })
+
+        # Remove duplicates (same timestamp)
+        seen_timestamps = set()
+        unique_dynamics = []
+        for d in dynamics:
+            ts = d.get("timestamp")
+            if ts not in seen_timestamps:
+                seen_timestamps.add(ts)
+                unique_dynamics.append(d)
+        dynamics = unique_dynamics
+
+        # Sort by timestamp (oldest first)
+        dynamics.sort(key=lambda x: x.get("timestamp", 0))
+
+        # Calculate changes
+        for i in range(len(dynamics)):
+            if i > 0:
+                prev_price = dynamics[i - 1]["price"]
+                curr_price = dynamics[i]["price"]
+
+                if prev_price > 0:
+                    change = curr_price - prev_price
+                    change_percent = (change / prev_price) * 100
+
+                    dynamics[i]["change"] = round(change, 2)
+                    dynamics[i]["changePercent"] = round(change_percent, 1)
+
+                    if change_percent > 5:
+                        dynamics[i]["trend"] = "up"
+                    elif change_percent < -5:
+                        dynamics[i]["trend"] = "down"
+                    else:
+                        dynamics[i]["trend"] = "stable"
+
+        # Calculate 24h change
+        now = int(time.time())
+        day_ago = now - 86400
+
+        recent = [d for d in dynamics if d["timestamp"] >= day_ago]
+        current_price = dynamics[-1]["price"] if dynamics else None
+
+        price_change_24h = None
+        price_change_percent_24h = None
+
+        if len(recent) >= 2:
+            oldest = recent[0]["price"]
+            newest = recent[-1]["price"]
+            if oldest > 0:
+                price_change_24h = round(newest - oldest, 2)
+                price_change_percent_24h = round((price_change_24h / oldest) * 100, 1)
+
+        return {
+            "success": True,
+            "itemKey": key,
+            "dynamics": dynamics,
+            "currentPrice": current_price,
+            "priceChange24h": price_change_24h,
+            "priceChangePercent24h": price_change_percent_24h
+        }
+
+    async def get_settings_dir(self) -> Dict[str, Any]:
+        """Return the plugin settings directory path"""
+        import decky
+        return {"success": True, "path": decky.DECKY_PLUGIN_SETTINGS_DIR}
+
     async def get_stat_ids_for_mods(self, modifiers: List[str]) -> Dict[str, Any]:
         """Get stat IDs for a list of modifier texts"""
         import decky
@@ -556,117 +1002,6 @@ class Plugin:
 
         decky.logger.info(f"Matched {matched}/{len(modifiers)} modifiers")
         return {"success": True, "stat_ids": results, "matched": matched, "total": len(modifiers)}
-
-    # =========================================================================
-    # POE.NINJA API
-    # =========================================================================
-
-    async def fetch_poe_ninja(self, item_type: str, item_name: str) -> Dict[str, Any]:
-        """
-        Fetch price data from poe.ninja API
-
-        item_type: Currency, UniqueWeapon, UniqueArmour, SkillGem, etc.
-        item_name: Name of the item to search
-        """
-        import decky
-        if not self.settings.get("usePoeNinja", True):
-            return {"success": False, "error": "poe.ninja disabled in settings"}
-
-        await self.ninja_limiter.wait()
-
-        league = self.settings.get("league", "Standard")
-
-        # Determine endpoint type
-        currency_types = ["Currency", "Fragment"]
-        if item_type in currency_types:
-            endpoint = "currencyoverview"
-        else:
-            endpoint = "itemoverview"
-
-        # Build URL for PoE2
-        # Note: poe.ninja uses "poe2" prefix for PoE2 data
-        base_url = f"https://poe.ninja/api/data/{endpoint}"
-        league_encoded = urllib.parse.quote(league, safe='')
-        params = f"?league=poe2%2F{league_encoded}&type={item_type}"
-        url = base_url + params
-
-        decky.logger.info(f"Fetching poe.ninja: {url}")
-
-        try:
-            req = urllib.request.Request(
-                url,
-                headers={
-                    "User-Agent": "PoE2-Price-Checker-Decky/1.0",
-                    "Accept": "application/json"
-                }
-            )
-
-            with urllib.request.urlopen(req, timeout=10, context=self.ssl_context) as response:
-                data = json.loads(response.read().decode())
-
-                # Search for matching item
-                lines = data.get("lines", [])
-
-                # Try exact match first
-                for item in lines:
-                    name = item.get("name", "") or item.get("currencyTypeName", "")
-                    if name.lower() == item_name.lower():
-                        return Plugin._format_ninja_result(self, item)
-
-                # Try partial match
-                item_name_lower = item_name.lower()
-                for item in lines:
-                    name = item.get("name", "") or item.get("currencyTypeName", "")
-                    if item_name_lower in name.lower():
-                        return Plugin._format_ninja_result(self, item)
-
-                return {
-                    "success": False,
-                    "source": "poe.ninja",
-                    "error": f"Item '{item_name}' not found on poe.ninja"
-                }
-
-        except urllib.error.HTTPError as e:
-            decky.logger.error(f"poe.ninja HTTP error: {e.code}")
-            return {
-                "success": False,
-                "source": "poe.ninja",
-                "error": f"HTTP Error: {e.code}"
-            }
-        except urllib.error.URLError as e:
-            decky.logger.error(f"poe.ninja URL error: {e.reason}")
-            return {
-                "success": False,
-                "source": "poe.ninja",
-                "error": f"Connection error: {e.reason}"
-            }
-        except Exception as e:
-            decky.logger.error(f"poe.ninja error: {e}")
-            return {
-                "success": False,
-                "source": "poe.ninja",
-                "error": str(e)
-            }
-
-    def _format_ninja_result(self, item: Dict[str, Any]) -> Dict[str, Any]:
-        """Format poe.ninja item data into standardized result"""
-        chaos_value = item.get("chaosValue") or item.get("chaosEquivalent")
-        exalted_value = item.get("exaltedValue")
-        divine_value = item.get("divineValue")
-
-        return {
-            "success": True,
-            "source": "poe.ninja",
-            "price": {
-                "chaos": chaos_value,
-                "exalted": exalted_value,
-                "divine": divine_value,
-            },
-            "confidence": "high" if item.get("count", 0) > 10 else "low",
-            "listings": item.get("count", 0),
-            "icon": item.get("icon"),
-            "error": None
-        }
 
     # =========================================================================
     # OFFICIAL TRADE API
@@ -792,6 +1127,7 @@ class Plugin:
         decky.logger.info(f"Fetching {total_to_fetch} listings in batches of 10")
 
         all_listings = []
+        first_item_icon = None  # Extract icon from first item
         batch_size = 10  # API limit
 
         poesessid = self.settings.get("poesessid", "")
@@ -830,6 +1166,12 @@ class Plugin:
                     for item in result.get("result", []):
                         if not item:
                             continue
+
+                        # Extract icon from first item
+                        if first_item_icon is None:
+                            item_data = item.get("item", {})
+                            first_item_icon = item_data.get("icon")
+
                         listing = item.get("listing", {})
                         price = listing.get("price", {})
                         amount = price.get("amount")
@@ -864,6 +1206,7 @@ class Plugin:
         return {
             "success": True,
             "listings": all_listings,
+            "icon": first_item_icon,
             "error": None
         }
 
@@ -1067,7 +1410,7 @@ class Plugin:
         rarity: str,
         modifiers: List[Dict[str, Any]],
         item_level: Optional[int] = None,
-        ninja_type: Optional[str] = None
+        ninja_type: Optional[str] = None  # Deprecated, kept for API compatibility
     ) -> Dict[str, Any]:
         """
         Progressive tiered search with smart early stopping.
@@ -1078,7 +1421,7 @@ class Plugin:
         - Tier 3: Base only (just base type + ilvl)
 
         Stops early if enough results found.
-        Also fetches poe.ninja price in parallel for uniques.
+        Also fetches poe2scout price for uniques and currency.
         """
         import decky
         decky.logger.info(f"Progressive search: {item_name or base_type}, {len(modifiers)} mods")
@@ -1087,6 +1430,7 @@ class Plugin:
             "success": True,
             "tiers": [],
             "ninja_price": None,
+            "trade_icon": None,  # Icon from Trade API
             "stopped_at_tier": 0,
             "total_searches": 0,
             "error": None
@@ -1106,20 +1450,22 @@ class Plugin:
         # Early stop threshold
         early_stop_count = 5
 
-        # For uniques, also try poe.ninja (fast, parallel would be ideal but we'll do it first)
-        if rarity == "Unique" and item_name and ninja_type:
+        # For uniques and currency, get quick price from poe2scout cache
+        if rarity in ("Unique", "Currency") and item_name:
             try:
-                ninja_result = await Plugin.fetch_poe_ninja(self, ninja_type, item_name)
-                if ninja_result.get("success"):
-                    result["ninja_price"] = ninja_result
-                    decky.logger.info(f"poe.ninja price: {ninja_result.get('price', {}).get('chaos')}c")
+                scout_result = Plugin.get_poe2scout_price(self, item_name, rarity)
+                if scout_result.get("success"):
+                    result["ninja_price"] = scout_result  # Keep key name for compatibility
+                    decky.logger.info(f"poe2scout price: {scout_result.get('price', {}).get('chaos')}c")
             except Exception as e:
-                decky.logger.warning(f"poe.ninja lookup failed: {e}")
+                decky.logger.warning(f"poe2scout lookup failed: {e}")
 
         # Determine which item identifier to use for Trade API
-        # For uniques: use name, for rares: use base_type
+        # For uniques: use name
+        # For rares: use base_type
+        # For magic: don't use type (contains affixes like "Plate Belt of the Starfish")
         search_name = item_name if rarity == "Unique" else None
-        search_type = base_type
+        search_type = None if rarity == "Magic" else base_type
 
         # Progressive tier search
         total_found = 0
@@ -1133,6 +1479,11 @@ class Plugin:
                 # Skip tier 0, 1, 2 if no modifiers
                 if tier < 3 and not modifiers:
                     decky.logger.info(f"Skipping tier {tier}: no modifiers")
+                    continue
+
+                # Skip tier 3 for magic items (we don't have clean base type)
+                if tier == 3 and rarity == "Magic":
+                    decky.logger.info(f"Skipping tier 3 for magic items: base type contains affixes")
                     continue
 
                 # Search
@@ -1157,6 +1508,10 @@ class Plugin:
                     )
                     if fetch_result.get("success"):
                         listings = fetch_result.get("listings", [])
+                        # Store icon from first tier with results
+                        if result["trade_icon"] is None and fetch_result.get("icon"):
+                            result["trade_icon"] = fetch_result.get("icon")
+                            decky.logger.info(f"Got trade icon: {result['trade_icon'][:50]}...")
 
                 # Add tier result
                 tier_result = {
