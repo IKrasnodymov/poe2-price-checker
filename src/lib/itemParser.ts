@@ -447,69 +447,73 @@ function calculateDPS(item: ParsedItem): void {
 }
 
 /**
- * Determine the poe.ninja item type based on parsed item
+ * Determine the poe2scout category based on parsed item
+ * Categories: weapon, armour, accessory, flask, jewel, map, sanctum, currency, etc.
  */
-export function getPoeNinjaItemType(item: ParsedItem): string | null {
-  // Only use poe.ninja for uniques, currency, gems, div cards
+export function getPoe2ScoutCategory(item: ParsedItem): string | null {
+  // Only use poe2scout for uniques and currency
   if (item.rarity === "Unique") {
-    return getUniqueItemType(item.itemClass);
+    return getUniqueCategoryForPoe2Scout(item.itemClass);
   }
 
   if (item.rarity === "Currency" || item.itemClass === "Currency" ||
       item.itemClass === "Stackable Currency") {
-    return "Currency";
+    return "currency";
   }
 
-  if (item.rarity === "DivinationCard" || item.itemClass === "Divination Cards") {
-    return "DivinationCard";
-  }
+  // poe2scout doesn't have good data for these yet
+  // if (item.rarity === "DivinationCard" || item.itemClass === "Divination Cards") {
+  //   return "divination";
+  // }
 
-  if (item.rarity === "Gem" || item.itemClass.includes("Gem")) {
-    return "SkillGem";
-  }
+  // if (item.rarity === "Gem" || item.itemClass.includes("Gem")) {
+  //   return "uncutgems";
+  // }
 
   return null;
 }
 
 /**
- * Get poe.ninja type for unique items by item class
+ * Get poe2scout category for unique items by item class
+ * poe2scout categories: weapon, armour, accessory, flask, jewel, map, sanctum
  */
-function getUniqueItemType(itemClass: string): string {
+function getUniqueCategoryForPoe2Scout(itemClass: string): string {
   const classMap: Record<string, string> = {
     // Armour
-    "Body Armours": "UniqueArmour",
-    Helmets: "UniqueArmour",
-    Gloves: "UniqueArmour",
-    Boots: "UniqueArmour",
-    Shields: "UniqueArmour",
+    "Body Armours": "armour",
+    Helmets: "armour",
+    Gloves: "armour",
+    Boots: "armour",
+    Shields: "armour",
 
     // Weapons
-    "One Hand Swords": "UniqueWeapon",
-    "Two Hand Swords": "UniqueWeapon",
-    "One Hand Axes": "UniqueWeapon",
-    "Two Hand Axes": "UniqueWeapon",
-    "One Hand Maces": "UniqueWeapon",
-    "Two Hand Maces": "UniqueWeapon",
-    Bows: "UniqueWeapon",
-    Crossbows: "UniqueWeapon",
-    Staves: "UniqueWeapon",
-    Wands: "UniqueWeapon",
-    Daggers: "UniqueWeapon",
-    Claws: "UniqueWeapon",
-    Sceptres: "UniqueWeapon",
-    Quarterstaves: "UniqueWeapon",
+    "One Hand Swords": "weapon",
+    "Two Hand Swords": "weapon",
+    "One Hand Axes": "weapon",
+    "Two Hand Axes": "weapon",
+    "One Hand Maces": "weapon",
+    "Two Hand Maces": "weapon",
+    Bows: "weapon",
+    Crossbows: "weapon",
+    Staves: "weapon",
+    Wands: "weapon",
+    Daggers: "weapon",
+    Claws: "weapon",
+    Sceptres: "weapon",
+    Quarterstaves: "weapon",
 
     // Accessories
-    Amulets: "UniqueAccessory",
-    Rings: "UniqueAccessory",
-    Belts: "UniqueAccessory",
+    Amulets: "accessory",
+    Rings: "accessory",
+    Belts: "accessory",
 
     // Other
-    Jewels: "UniqueJewel",
-    Flasks: "UniqueFlask",
+    Jewels: "jewel",
+    Flasks: "flask",
+    Maps: "map",
   };
 
-  return classMap[itemClass] || "UniqueArmour";
+  return classMap[itemClass] || "armour";
 }
 
 /**

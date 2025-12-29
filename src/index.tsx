@@ -12,7 +12,7 @@ import {
   staticClasses,
 } from "@decky/ui";
 import { call } from "@decky/api";
-import { useState, useEffect, useCallback, FC, useRef } from "react";
+import { useState, useEffect, useCallback, FC } from "react";
 import {
   FaCoins,
   FaCog,
@@ -50,13 +50,12 @@ import {
   PriceHistoryResult,
   TieredSearchResult,
   SearchTier,
-  PoeNinjaResult,
   ScanHistoryRecord,
   ScanHistoryResult,
   PriceDynamicsResult,
   PriceDynamicsEntry,
 } from "./lib/types";
-import { parseItemText, getPoeNinjaItemType, getItemDisplayName, getAllModifiers } from "./lib/itemParser";
+import { parseItemText, getItemDisplayName, getAllModifiers } from "./lib/itemParser";
 import { formatPrice, getBestPrice, matchModifier, getModifierPriority } from "./utils/modifierMatcher";
 
 // =========================================================================
@@ -93,7 +92,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ onBack }) => {
   const [settings, setSettings] = useState<PluginSettings>({
     league: "Fate of the Vaal",
     useTradeApi: true,
-    usePoeNinja: true,
+    usePoe2Scout: true,
+    autoCheckOnOpen: true,
     poesessid: "",
   });
   const [leagues, setLeagues] = useState<League[]>(DEFAULT_LEAGUES);
@@ -195,10 +195,10 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ onBack }) => {
       <PanelSection title="Data Sources">
         <PanelSectionRow>
           <ToggleField
-            label="Use poe.ninja"
+            label="Use poe2scout"
             description="For unique items and currency prices"
-            checked={settings.usePoeNinja}
-            onChange={(v) => updateSetting("usePoeNinja", v)}
+            checked={settings.usePoe2Scout}
+            onChange={(v) => updateSetting("usePoe2Scout", v)}
           />
         </PanelSectionRow>
 
@@ -208,6 +208,15 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ onBack }) => {
             description="For rare/magic item searches"
             checked={settings.useTradeApi}
             onChange={(v) => updateSetting("useTradeApi", v)}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ToggleField
+            label="Auto-check on open"
+            description="Automatically check clipboard when plugin opens"
+            checked={settings.autoCheckOnOpen}
+            onChange={(v) => updateSetting("autoCheckOnOpen", v)}
           />
         </PanelSectionRow>
       </PanelSection>
@@ -511,9 +520,11 @@ interface PriceDynamicsPanelProps {
   record: ScanHistoryRecord;
   onBack: () => void;
   settingsDir: string;
+  onRescan?: () => void;  // Optional: show Rescan button when provided
+  backLabel?: string;     // Optional: customize back button label
 }
 
-const PriceDynamicsPanel: FC<PriceDynamicsPanelProps> = ({ record, onBack, settingsDir }) => {
+const PriceDynamicsPanel: FC<PriceDynamicsPanelProps> = ({ record, onBack, settingsDir, onRescan, backLabel }) => {
   const [dynamics, setDynamics] = useState<PriceDynamicsEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
@@ -566,9 +577,17 @@ const PriceDynamicsPanel: FC<PriceDynamicsPanelProps> = ({ record, onBack, setti
         <PanelSectionRow>
           <ButtonItem layout="below" onClick={onBack}>
             <FaArrowLeft style={{ marginRight: 8 }} />
-            Back to History
+            {backLabel || "Back to History"}
           </ButtonItem>
         </PanelSectionRow>
+        {onRescan && (
+          <PanelSectionRow>
+            <ButtonItem layout="below" onClick={onRescan}>
+              <FaSync style={{ marginRight: 8 }} />
+              Rescan Item
+            </ButtonItem>
+          </PanelSectionRow>
+        )}
       </PanelSection>
 
       {/* Item Header with Icon */}
@@ -1189,12 +1208,12 @@ const PriceDisplay: FC<PriceDisplayProps> = ({ priceResult, item }) => {
     );
   }
 
-  // poe.ninja result
-  if (priceResult.source === "poe.ninja" && priceResult.price) {
+  // poe2scout result
+  if (priceResult.source === "poe2scout" && priceResult.price) {
     const bestPrice = getBestPrice(priceResult.price);
 
     return (
-      <PanelSection title="Price (poe.ninja)">
+      <PanelSection title="Price (poe2scout)">
         <PanelSectionRow>
           <div style={{ padding: 8 }}>
             <div style={{ fontSize: 20, fontWeight: "bold", color: "#ffd700" }}>
@@ -1498,8 +1517,8 @@ const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
 
   return (
     <>
-      {/* poe.ninja quick result (if available) */}
-      {result.ninja_price?.success && result.ninja_price.price && (
+      {/* poe2scout quick result (if available) */}
+      {result.poe2scout_price?.success && result.poe2scout_price.price && (
         <div style={{
           background: "rgba(30, 144, 255, 0.1)",
           border: "1px solid rgba(30, 144, 255, 0.3)",
@@ -1510,10 +1529,10 @@ const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
           justifyContent: "space-between",
           alignItems: "center",
         }}>
-          <span style={{ fontSize: 11, color: "#888" }}>poe.ninja</span>
+          <span style={{ fontSize: 11, color: "#888" }}>poe2scout</span>
           <span style={{ fontSize: 14, fontWeight: "bold", color: "#4dabf7" }}>
             {(() => {
-              const best = getBestPrice(result.ninja_price!.price!);
+              const best = getBestPrice(result.poe2scout_price!.price!);
               return best ? formatPrice(best.amount, best.currency) : "N/A";
             })()}
           </span>
@@ -1636,7 +1655,7 @@ const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
       })}
 
       {/* No results at all */}
-      {result.tiers.length === 0 && !result.ninja_price?.success && (
+      {result.tiers.length === 0 && !result.poe2scout_price?.success && (
         <PanelSection title="No Results">
           <PanelSectionRow>
             <div style={{ padding: 8, color: "#888" }}>
@@ -1662,11 +1681,11 @@ const PriceCheckContent: FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<ScanHistoryRecord | null>(null);
+  const [cameFromCache, setCameFromCache] = useState(false);  // Track if showing cached result
   const [settingsDir, setSettingsDir] = useState<string>("");
   const [modifiers, setModifiers] = useState<ItemModifier[]>([]);
   const [autoChecked, setAutoChecked] = useState(false);
-  const [settings, setSettings] = useState<PluginSettings>({ league: "Fate of the Vaal", useTradeApi: true, usePoeNinja: true, poesessid: "" });
-  const checkPriceRef = useRef<(() => Promise<void>) | null>(null);
+  const [settings, setSettings] = useState<PluginSettings>({ league: "Fate of the Vaal", useTradeApi: true, usePoe2Scout: true, autoCheckOnOpen: true, poesessid: "" });
 
   // Load settings and settingsDir on mount
   useEffect(() => {
@@ -1692,19 +1711,6 @@ const PriceCheckContent: FC = () => {
     loadSettingsDir();
   }, []);
 
-  // Auto-check clipboard when plugin is opened (with delay to let refs initialize)
-  useEffect(() => {
-    if (autoChecked) return;
-
-    const timer = setTimeout(() => {
-      if (checkPriceRef.current) {
-        setAutoChecked(true);
-        checkPriceRef.current();
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [autoChecked]);
 
   /**
    * Progressive search - searches through tiers for best results
@@ -1734,12 +1740,9 @@ const PriceCheckContent: FC = () => {
         priority: getModifierPriority(m.text),
       }));
 
-    // Get poe.ninja item type for unique items
-    const ninjaType = item.rarity === "Unique" ? getPoeNinjaItemType(item) : null;
-
     // Call progressive_search
     const result = await call<
-      [string | null, string | null, string, typeof modsWithIds, number | null, string | null],
+      [string | null, string | null, string, typeof modsWithIds, number | null],
       TieredSearchResult
     >(
       "progressive_search",
@@ -1747,8 +1750,7 @@ const PriceCheckContent: FC = () => {
       item.basetype,
       item.rarity,
       modsWithIds,
-      item.itemLevel || null,
-      ninjaType
+      item.itemLevel || null
     );
 
     setTieredResult(result);
@@ -1799,8 +1801,8 @@ const PriceCheckContent: FC = () => {
           );
 
           // Save to scan history (new feature)
-          // Get icon from ninja (for uniques) or trade API (for rares)
-          const iconUrl = result.ninja_price?.icon || result.trade_icon || null;
+          // Get icon from poe2scout (for uniques) or trade API (for rares)
+          const iconUrl = result.poe2scout_price?.icon || result.trade_icon || null;
           try {
             await call<
               [
@@ -1842,7 +1844,7 @@ const PriceCheckContent: FC = () => {
   /**
    * Read clipboard and parse item
    */
-  const checkPrice = useCallback(async () => {
+  const checkPrice = useCallback(async (forceSearch = false) => {
     setIsLoading(true);
     setError(null);
     setParsedItem(null);
@@ -1869,6 +1871,33 @@ const PriceCheckContent: FC = () => {
       }
 
       setParsedItem(item);
+
+      // Check if item is already in scan history (skip search if found)
+      if (!forceSearch) {
+        try {
+          const historyResult = await call<[number | null], ScanHistoryResult>(
+            "get_scan_history",
+            100  // Load last 100 entries to search
+          );
+          if (historyResult.success && historyResult.records && historyResult.records.length > 0) {
+            const itemKey = item.rarity === "Unique" ? item.name.toLowerCase() : item.basetype.toLowerCase();
+            const cached = historyResult.records.find((h: ScanHistoryRecord) =>
+              (h.rarity === "Unique" ? h.itemName.toLowerCase() === itemKey : h.basetype.toLowerCase() === itemKey)
+            );
+            if (cached) {
+              // Show cached result - need to set showHistory to display the panel
+              setSelectedHistoryItem(cached);
+              setShowHistory(true);
+              setCameFromCache(true);  // Mark that we came from cache check
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          // If history check fails, continue with normal search
+          console.log("History check failed, continuing with search:", e);
+        }
+      }
 
       // Get all modifiers and try to match them
       const allMods = getAllModifiers(item);
@@ -1912,19 +1941,61 @@ const PriceCheckContent: FC = () => {
       // Small delay to ensure clipboard is updated
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Now check the clipboard
+      // Now check the clipboard - force new search since user manually triggered
       setIsLoading(false);
-      await checkPrice();
+      await checkPrice(true);  // forceSearch = true for manual Copy & Check
     } catch (e) {
       setError(`Copy error: ${e}`);
       setIsLoading(false);
     }
   }, [checkPrice]);
 
-  // Update ref for auto-check
+  // Auto-check on mount - run once after initial render
   useEffect(() => {
-    checkPriceRef.current = checkPrice;
-  }, [checkPrice]);
+    if (autoChecked) return;
+    if (!settings.autoCheckOnOpen) return;
+
+    // Mark as checked immediately to prevent re-runs
+    setAutoChecked(true);
+
+    // Delay to ensure all hooks are ready
+    const timer = setTimeout(async () => {
+      // Inline the checkPrice logic to avoid dependency issues
+      try {
+        const clipboardResult = await call<[], ClipboardResult>("read_clipboard");
+        if (!clipboardResult.success || !clipboardResult.text) return;
+
+        const item = parseItemText(clipboardResult.text);
+        if (!item) return;
+
+        // Check history first
+        const historyResult = await call<[number | null], ScanHistoryResult>(
+          "get_scan_history",
+          100
+        );
+        if (historyResult.success && historyResult.records && historyResult.records.length > 0) {
+          const itemKey = item.rarity === "Unique" ? item.name.toLowerCase() : item.basetype.toLowerCase();
+          const cached = historyResult.records.find((h: ScanHistoryRecord) =>
+            (h.rarity === "Unique" ? h.itemName.toLowerCase() === itemKey : h.basetype.toLowerCase() === itemKey)
+          );
+          if (cached) {
+            setSelectedHistoryItem(cached);
+            setShowHistory(true);
+            setCameFromCache(true);
+            return;
+          }
+        }
+
+        // Not in cache - trigger manual check (user will need to click button)
+        setParsedItem(item);
+      } catch (e) {
+        console.error("Auto-check failed:", e);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Toggle modifier for filtering
@@ -1957,18 +2028,29 @@ const PriceCheckContent: FC = () => {
   // History panels
   if (showHistory) {
     if (selectedHistoryItem) {
+      // Different behavior if came from cache check vs history panel
+      const handleBack = cameFromCache
+        ? () => { setSelectedHistoryItem(null); setShowHistory(false); setCameFromCache(false); }
+        : () => setSelectedHistoryItem(null);
+
+      const handleRescan = cameFromCache
+        ? () => { setSelectedHistoryItem(null); setShowHistory(false); setCameFromCache(false); checkPrice(true); }
+        : undefined;
+
       return (
         <PriceDynamicsPanel
           record={selectedHistoryItem}
-          onBack={() => setSelectedHistoryItem(null)}
+          onBack={handleBack}
           settingsDir={settingsDir}
+          onRescan={handleRescan}
+          backLabel={cameFromCache ? "Back to Main" : "Back to History"}
         />
       );
     }
     return (
       <HistoryPanel
         onBack={() => setShowHistory(false)}
-        onSelectItem={(record) => setSelectedHistoryItem(record)}
+        onSelectItem={(record) => { setSelectedHistoryItem(record); setCameFromCache(false); }}
         settingsDir={settingsDir}
       />
     );
@@ -2000,7 +2082,7 @@ const PriceCheckContent: FC = () => {
         </PanelSectionRow>
 
         <PanelSectionRow>
-          <ButtonItem layout="below" onClick={checkPrice} disabled={isLoading}>
+          <ButtonItem layout="below" onClick={() => checkPrice()} disabled={isLoading}>
             <FaClipboard style={{ marginRight: 8 }} />
             Check Clipboard Only
           </ButtonItem>

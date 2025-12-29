@@ -108,6 +108,7 @@ export interface PluginSettings {
   league: string;
   useTradeApi: boolean;
   usePoe2Scout: boolean;
+  autoCheckOnOpen: boolean;
   poesessid: string;
 }
 
@@ -153,9 +154,6 @@ export interface Poe2ScoutResult {
   icon?: string;
   error?: string;
 }
-
-// Alias for backward compatibility
-export type PoeNinjaResult = Poe2ScoutResult;
 
 export interface LeaguesResult {
   success: boolean;
@@ -227,7 +225,7 @@ export interface SearchTier {
 export interface TieredSearchResult {
   success: boolean;
   tiers: SearchTier[];
-  ninja_price?: PoeNinjaResult;
+  poe2scout_price?: Poe2ScoutResult;
   trade_icon?: string;  // Icon URL from Trade API
   stopped_at_tier: number;
   total_searches: number;
@@ -247,7 +245,7 @@ export interface ScanPriceData {
   maxPrice: number;
   medianPrice: number;
   currency: string;
-  source: "trade" | "poe.ninja";
+  source: "trade" | "poe2scout";
 }
 
 export interface ScanHistoryRecord {

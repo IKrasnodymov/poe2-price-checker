@@ -1,6 +1,7 @@
 {
   "league": "Standard",
   "useTradeApi": true,
-  "usePoeNinja": true,
+  "usePoe2Scout": true,
+  "autoCheckOnOpen": true,
   "poesessid": ""
 }

@@ -379,20 +379,19 @@ class Plugin:
         return 30
 
     async def load_poe2scout_cache(self) -> None:
-        """Load item prices and currency rates from poe2scout.com"""
+        """Load currency rates from poe2scout.com (items loaded on-demand)"""
         import decky
-        decky.logger.info("Loading poe2scout cache...")
+        decky.logger.info("Loading poe2scout currency rates...")
 
         league = self.settings.get("league", "Fate of the Vaal")
-        league_encoded = urllib.parse.quote(league, safe='')
 
-        # Step 1: Load leagues to get divine/exalted price ratio
+        # Only load leagues to get divine/exalted price ratio
         try:
             leagues_url = "https://poe2scout.com/api/leagues"
             req = urllib.request.Request(
                 leagues_url,
                 headers={
-                    "User-Agent": "PoE2-Price-Checker-Decky/1.0",
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
                     "Accept": "application/json"
                 }
             )
@@ -403,58 +402,65 @@ class Plugin:
                         Plugin.poe2scout_divine_price = lg.get("divinePrice", 100.0)
                         chaos_divine = lg.get("chaosDivinePrice", 50.0)
                         # Update currency rates based on poe2scout data
-                        # divinePrice is in exalted, chaosDivinePrice is chaos per divine
                         Plugin.currency_rates["divine"] = chaos_divine
                         Plugin.currency_rates["divine-orb"] = chaos_divine
-                        # Calculate exalted rate: divine_in_chaos / divine_in_exalted
                         if Plugin.poe2scout_divine_price > 0:
                             exalt_rate = chaos_divine / Plugin.poe2scout_divine_price
                             Plugin.currency_rates["exalted"] = exalt_rate
                             Plugin.currency_rates["exalted-orb"] = exalt_rate
-                        decky.logger.info(f"League {league}: divine={chaos_divine}c, exalted={Plugin.currency_rates.get('exalted', 'N/A')}c")
+                        decky.logger.info(f"poe2scout rates: divine={chaos_divine}c, exalted={exalt_rate:.2f}c")
                         break
         except Exception as e:
-            decky.logger.error(f"Failed to load leagues: {e}")
+            decky.logger.error(f"Failed to load poe2scout rates: {e}")
 
-        # Step 2: Load all items for the league
-        try:
-            items_url = f"https://poe2scout.com/api/items?league={league_encoded}"
-            req = urllib.request.Request(
-                items_url,
-                headers={
-                    "User-Agent": "PoE2-Price-Checker-Decky/1.0",
-                    "Accept": "application/json"
-                }
-            )
-            with urllib.request.urlopen(req, timeout=30, context=self.ssl_context) as response:
-                items_data = json.loads(response.read().decode())
+    async def fetch_poe2scout_item(self, item_name: str, category: str = "weapon") -> Dict[str, Any]:
+        """Fetch item from poe2scout by name (on-demand, with caching)"""
+        import decky
 
-                items_count = 0
-                currency_count = 0
+        # Check cache first
+        name_lower = item_name.lower()
+        if name_lower in Plugin.poe2scout_cache.get("items", {}):
+            decky.logger.info(f"poe2scout cache hit: {item_name}")
+            return Plugin.poe2scout_cache["items"][name_lower]
 
-                for item in items_data:
-                    # Unique items have 'name' field, currency has 'apiId'
-                    if "name" in item and item.get("name"):
-                        # Unique item
-                        name_lower = item["name"].lower()
-                        Plugin.poe2scout_cache["items"][name_lower] = item
-                        items_count += 1
-                    elif "apiId" in item:
-                        # Currency item
-                        api_id = item["apiId"]
-                        Plugin.poe2scout_cache["currency"][api_id] = item
-                        currency_count += 1
+        league = self.settings.get("league", "Fate of the Vaal")
+        league_encoded = urllib.parse.quote(league, safe='')
+        search_encoded = urllib.parse.quote(item_name, safe='')
 
-                decky.logger.info(f"poe2scout cache loaded: {items_count} items, {currency_count} currency")
+        # Search all unique categories
+        categories = ["weapon", "armour", "accessory", "flask", "jewel"]
 
-        except Exception as e:
-            decky.logger.error(f"Failed to load poe2scout items: {e}")
-            import traceback
-            decky.logger.error(traceback.format_exc())
+        for cat in categories:
+            try:
+                url = f"https://poe2scout.com/api/items/unique/{cat}?league={league_encoded}&search={search_encoded}"
+                req = urllib.request.Request(
+                    url,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+                        "Accept": "application/json"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=10, context=self.ssl_context) as response:
+                    data = json.loads(response.read().decode())
+                    items = data.get("items", [])
 
-    def get_poe2scout_price(self, item_name: str, rarity: str = "Unique") -> Dict[str, Any]:
+                    for item in items:
+                        if item.get("name", "").lower() == name_lower:
+                            # Cache it
+                            Plugin.poe2scout_cache["items"][name_lower] = item
+                            decky.logger.info(f"poe2scout found: {item_name} in {cat}")
+                            return item
+
+            except Exception as e:
+                decky.logger.warning(f"poe2scout search failed ({cat}): {e}")
+                continue
+
+        decky.logger.info(f"poe2scout: {item_name} not found")
+        return None
+
+    async def get_poe2scout_price(self, item_name: str, rarity: str = "Unique") -> Dict[str, Any]:
         """
-        Get item price from poe2scout cache.
+        Get item price from poe2scout (cache or on-demand fetch).
         Returns price in chaos (converted from exalted).
         """
         import decky
@@ -462,24 +468,21 @@ class Plugin:
         if not self.settings.get("usePoe2Scout", True):
             return {"success": False, "error": "poe2scout disabled in settings"}
 
-        if not Plugin.poe2scout_cache:
-            return {"success": False, "error": "poe2scout cache not loaded"}
-
         name_lower = item_name.lower().strip() if item_name else ""
 
-        # Try to find in items cache (uniques)
-        if rarity == "Unique" and name_lower in Plugin.poe2scout_cache.get("items", {}):
-            item = Plugin.poe2scout_cache["items"][name_lower]
-            return Plugin._format_poe2scout_result(self, item)
-
-        # Try partial match for uniques
+        # Try to find in items cache first
         if rarity == "Unique":
-            for cached_name, item_data in Plugin.poe2scout_cache.get("items", {}).items():
-                if name_lower in cached_name or cached_name in name_lower:
-                    decky.logger.info(f"poe2scout partial match: '{name_lower}' -> '{cached_name}'")
-                    return Plugin._format_poe2scout_result(self, item_data)
+            if name_lower in Plugin.poe2scout_cache.get("items", {}):
+                decky.logger.info(f"poe2scout cache hit: {item_name}")
+                item = Plugin.poe2scout_cache["items"][name_lower]
+                return Plugin._format_poe2scout_result(self, item)
 
-        # Try currency cache
+            # Not in cache - fetch on demand
+            item = await Plugin.fetch_poe2scout_item(self, item_name)
+            if item:
+                return Plugin._format_poe2scout_result(self, item)
+
+        # Try currency cache (currency is rare, keep simple)
         for api_id, item_data in Plugin.poe2scout_cache.get("currency", {}).items():
             item_text = item_data.get("text", "").lower()
             if name_lower in item_text or item_text in name_lower:
@@ -488,7 +491,7 @@ class Plugin:
         return {
             "success": False,
             "source": "poe2scout",
-            "error": f"Item '{item_name}' not found in poe2scout cache"
+            "error": f"Item '{item_name}' not found on poe2scout"
         }
 
     def _format_poe2scout_result(self, item: Dict[str, Any]) -> Dict[str, Any]:
@@ -837,10 +840,12 @@ class Plugin:
 
     async def get_scan_history(self, limit: Optional[int] = None) -> Dict[str, Any]:
         """Get scan history records"""
+        import decky
         records = Plugin.scan_history or []
         if limit:
             records = records[:limit]
 
+        decky.logger.info(f"get_scan_history called, returning {len(records)} records")
         return {
             "success": True,
             "records": records,
@@ -1409,8 +1414,7 @@ class Plugin:
         base_type: Optional[str],
         rarity: str,
         modifiers: List[Dict[str, Any]],
-        item_level: Optional[int] = None,
-        ninja_type: Optional[str] = None  # Deprecated, kept for API compatibility
+        item_level: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Progressive tiered search with smart early stopping.
@@ -1429,7 +1433,7 @@ class Plugin:
         result = {
             "success": True,
             "tiers": [],
-            "ninja_price": None,
+            "poe2scout_price": None,
             "trade_icon": None,  # Icon from Trade API
             "stopped_at_tier": 0,
             "total_searches": 0,
@@ -1450,13 +1454,17 @@ class Plugin:
         # Early stop threshold
         early_stop_count = 5
 
-        # For uniques and currency, get quick price from poe2scout cache
+        # For uniques and currency, get quick price from poe2scout (on-demand)
+        decky.logger.info(f"poe2scout check: rarity={rarity}, item_name={item_name}")
         if rarity in ("Unique", "Currency") and item_name:
             try:
-                scout_result = Plugin.get_poe2scout_price(self, item_name, rarity)
+                decky.logger.info(f"poe2scout lookup: {item_name}")
+                scout_result = await Plugin.get_poe2scout_price(self, item_name, rarity)
                 if scout_result.get("success"):
-                    result["ninja_price"] = scout_result  # Keep key name for compatibility
-                    decky.logger.info(f"poe2scout price: {scout_result.get('price', {}).get('chaos')}c")
+                    result["poe2scout_price"] = scout_result
+                    decky.logger.info(f"poe2scout price: {scout_result.get('price', {}).get('exalted')} exalted")
+                else:
+                    decky.logger.info(f"poe2scout no result: {scout_result.get('error')}")
             except Exception as e:
                 decky.logger.warning(f"poe2scout lookup failed: {e}")
 
