@@ -43,9 +43,12 @@ import {
   ItemModifier,
   PriceHistoryRecord,
   PriceHistoryResult,
+  TieredSearchResult,
+  SearchTier,
+  PoeNinjaResult,
 } from "./lib/types";
 import { parseItemText, getPoeNinjaItemType, getItemDisplayName, getAllModifiers } from "./lib/itemParser";
-import { formatPrice, getBestPrice, matchModifier } from "./utils/modifierMatcher";
+import { formatPrice, getBestPrice, matchModifier, getModifierPriority } from "./utils/modifierMatcher";
 
 // =========================================================================
 // STYLE CONSTANTS
@@ -894,6 +897,274 @@ const PriceDisplay: FC<PriceDisplayProps> = ({ priceResult, item }) => {
 };
 
 // =========================================================================
+// TIERED PRICE DISPLAY COMPONENT
+// =========================================================================
+
+interface TieredPriceDisplayProps {
+  result: TieredSearchResult;
+  item?: ParsedItem | null;
+}
+
+const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
+  const [expandedTiers, setExpandedTiers] = useState<Set<number>>(new Set([1]));
+
+  // Helper to format indexed time
+  const formatIndexedTime = (indexed: string): string => {
+    try {
+      const date = new Date(indexed);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return "now";
+      if (diffMins < 60) return `${diffMins}m`;
+      if (diffHours < 24) return `${diffHours}h`;
+      return `${diffDays}d`;
+    } catch {
+      return "";
+    }
+  };
+
+  // Calculate price stats for a tier
+  const getTierStats = (tier: SearchTier) => {
+    if (!tier.listings || tier.listings.length === 0) {
+      return null;
+    }
+
+    const byCurrency: Record<string, number[]> = {};
+    tier.listings.forEach((l) => {
+      if (l.amount != null && l.amount > 0 && l.currency) {
+        const curr = l.currency.toLowerCase();
+        if (!byCurrency[curr]) byCurrency[curr] = [];
+        byCurrency[curr].push(l.amount);
+      }
+    });
+
+    // Find dominant currency
+    let dominant = "chaos";
+    let maxCount = 0;
+    Object.entries(byCurrency).forEach(([curr, vals]) => {
+      if (vals.length > maxCount) {
+        maxCount = vals.length;
+        dominant = curr;
+      }
+    });
+
+    const values = byCurrency[dominant] || [];
+    if (values.length === 0) return null;
+
+    values.sort((a, b) => a - b);
+    const min = values[0];
+    const max = values[values.length - 1];
+    const mid = Math.floor(values.length / 2);
+    const median = values.length % 2 !== 0
+      ? values[mid]
+      : (values[mid - 1] + values[mid]) / 2;
+
+    return { min, max, median, currency: dominant, count: values.length };
+  };
+
+  // Get tier color based on tier number
+  const getTierColor = (tierNum: number) => {
+    if (tierNum === 0) return "#40c057"; // Green - exact 100% match
+    if (tierNum === 1) return "#ffd700"; // Gold - 80% match
+    if (tierNum === 2) return "#4dabf7"; // Blue - core mods
+    return "#868e96"; // Gray - base only
+  };
+
+  const getTierLabel = (tierNum: number) => {
+    if (tierNum === 0) return "ТОЧНОЕ";
+    if (tierNum === 1) return "ВАША ВЕЩЬ";
+    if (tierNum === 2) return "ПОХОЖИЕ";
+    return "БАЗА";
+  };
+
+  const toggleTier = (tierNum: number) => {
+    const newExpanded = new Set(expandedTiers);
+    if (newExpanded.has(tierNum)) {
+      newExpanded.delete(tierNum);
+    } else {
+      newExpanded.add(tierNum);
+    }
+    setExpandedTiers(newExpanded);
+  };
+
+  // Find first tier with results for auto-expand
+  useEffect(() => {
+    const firstWithResults = result.tiers.find(t => t.total > 0);
+    if (firstWithResults) {
+      setExpandedTiers(new Set([firstWithResults.tier]));
+    }
+  }, [result]);
+
+  if (!result.success && result.error) {
+    return (
+      <PanelSection title="Search Error">
+        <PanelSectionRow>
+          <div style={{ color: "#ff6b6b", padding: 8 }}>
+            {result.error}
+          </div>
+        </PanelSectionRow>
+      </PanelSection>
+    );
+  }
+
+  return (
+    <>
+      {/* poe.ninja quick result (if available) */}
+      {result.ninja_price?.success && result.ninja_price.price && (
+        <div style={{
+          background: "rgba(30, 144, 255, 0.1)",
+          border: "1px solid rgba(30, 144, 255, 0.3)",
+          borderRadius: 6,
+          padding: "8px 12px",
+          margin: "8px 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}>
+          <span style={{ fontSize: 11, color: "#888" }}>poe.ninja</span>
+          <span style={{ fontSize: 14, fontWeight: "bold", color: "#4dabf7" }}>
+            {(() => {
+              const best = getBestPrice(result.ninja_price!.price!);
+              return best ? formatPrice(best.amount, best.currency) : "N/A";
+            })()}
+          </span>
+        </div>
+      )}
+
+      {/* Tiered results */}
+      {result.tiers.map((tier) => {
+        const stats = getTierStats(tier);
+        const tierColor = getTierColor(tier.tier);
+        const isExpanded = expandedTiers.has(tier.tier);
+
+        return (
+          <div
+            key={tier.tier}
+            style={{
+              margin: "8px 16px",
+              border: `1px solid ${tierColor}33`,
+              borderRadius: 8,
+              overflow: "hidden",
+            }}
+          >
+            {/* Tier Header - clickable */}
+            <div
+              onClick={() => toggleTier(tier.tier)}
+              style={{
+                background: `linear-gradient(135deg, ${tierColor}22 0%, ${tierColor}11 100%)`,
+                padding: "10px 12px",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 10, color: tierColor, fontWeight: "bold", marginBottom: 2 }}>
+                  {getTierLabel(tier.tier)}
+                </div>
+                <div style={{ fontSize: 11, color: "#888" }}>
+                  {tier.description}
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                {stats ? (
+                  <>
+                    <div style={{ fontSize: 16, fontWeight: "bold", color: tierColor }}>
+                      {stats.min === stats.max
+                        ? formatPrice(stats.min, stats.currency)
+                        : `${formatPrice(stats.min, stats.currency)} — ${formatPrice(stats.max, stats.currency)}`
+                      }
+                    </div>
+                    <div style={{ fontSize: 10, color: "#666" }}>
+                      {tier.total} listings
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: "#666" }}>
+                    {tier.total === 0 ? "No listings" : "..."}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Expanded content */}
+            {isExpanded && tier.listings && tier.listings.length > 0 && (
+              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 0" }}>
+                {tier.listings.slice(0, 5).map((listing, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: "6px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      borderBottom: i < Math.min(tier.listings.length - 1, 4) ? "1px solid rgba(255,255,255,0.05)" : "none",
+                    }}
+                  >
+                    <span style={{ fontSize: 13, color: "#ffd700", fontWeight: "bold" }}>
+                      {formatPrice(listing.amount, listing.currency)}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 10, color: "#666" }}>
+                        {listing.indexed && formatIndexedTime(listing.indexed)}
+                      </span>
+                      {listing.whisper && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await navigator.clipboard.writeText(listing.whisper);
+                            } catch {
+                              await call<[string], void>("copy_to_clipboard", listing.whisper);
+                            }
+                          }}
+                          style={{
+                            background: "rgba(255,215,0,0.15)",
+                            border: "1px solid rgba(255,215,0,0.3)",
+                            borderRadius: 4,
+                            padding: "2px 6px",
+                            cursor: "pointer",
+                            color: "#ffd700",
+                            fontSize: 9,
+                          }}
+                        >
+                          <FaCopy size={8} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {tier.listings.length > 5 && (
+                  <div style={{ padding: "6px 12px", fontSize: 10, color: "#666", textAlign: "center" }}>
+                    +{tier.listings.length - 5} more
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* No results at all */}
+      {result.tiers.length === 0 && !result.ninja_price?.success && (
+        <PanelSection title="No Results">
+          <PanelSectionRow>
+            <div style={{ padding: 8, color: "#888" }}>
+              No listings found. Try different modifiers.
+            </div>
+          </PanelSectionRow>
+        </PanelSection>
+      )}
+    </>
+  );
+};
+
+// =========================================================================
 // MAIN PRICE CHECK CONTENT
 // =========================================================================
 
@@ -902,9 +1173,7 @@ const PriceCheckContent: FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [parsedItem, setParsedItem] = useState<ParsedItem | null>(null);
   const [priceResult, setPriceResult] = useState<PriceResult | null>(null);
-  // Dual-source: separate results for poe.ninja and Trade API
-  const [ninjaResult, setNinjaResult] = useState<PriceResult | null>(null);
-  const [tradeResult, setTradeResult] = useState<PriceResult | null>(null);
+  const [tieredResult, setTieredResult] = useState<TieredSearchResult | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [modifiers, setModifiers] = useState<ItemModifier[]>([]);
   const [autoChecked, setAutoChecked] = useState(false);
@@ -939,13 +1208,13 @@ const PriceCheckContent: FC = () => {
   }, [autoChecked]);
 
   /**
-   * Search trade API for item
+   * Progressive search - searches through tiers for best results
    */
-  const searchTradeApi = useCallback(async (
+  const progressiveSearch = useCallback(async (
     item: ParsedItem,
     mods: ItemModifier[]
   ) => {
-    // Get enabled modifiers
+    // Get enabled modifiers with priorities
     const enabledMods = mods.filter((m) => m.enabled);
 
     // Get stat IDs from backend for all enabled mods
@@ -955,68 +1224,43 @@ const PriceCheckContent: FC = () => {
       modTexts
     );
 
-    // Build mod list with resolved stat IDs
+    // Build mod list with resolved stat IDs and priorities
     const modsWithIds = enabledMods
       .filter((m) => statIdsResult.stat_ids[m.text])
       .map((m) => ({
         id: statIdsResult.stat_ids[m.text],
+        text: m.text,
         min: m.minValue,
         enabled: true,
+        priority: getModifierPriority(m.text),
       }));
 
-    const query = await call<
-      [string | null, string | null, typeof modsWithIds, Record<string, unknown>],
-      Record<string, unknown>
+    // Get poe.ninja item type for unique items
+    const ninjaType = item.rarity === "Unique" ? getPoeNinjaItemType(item) : null;
+
+    // Call progressive_search
+    const result = await call<
+      [string | null, string | null, string, typeof modsWithIds, number | null, string | null],
+      TieredSearchResult
     >(
-      "build_trade_query",
+      "progressive_search",
       item.rarity === "Unique" ? item.name : null,
       item.basetype,
+      item.rarity,
       modsWithIds,
-      { ilvl_min: item.itemLevel }
+      item.itemLevel || null,
+      ninjaType
     );
 
-    const searchResult = await call<[Record<string, unknown>], TradeSearchResult>(
-      "search_trade_api",
-      query
-    );
+    setTieredResult(result);
 
-    if (!searchResult.success) {
-      setPriceResult({
-        success: false,
-        source: "trade",
-        error: searchResult.error || "Trade API search failed",
-      });
-      return;
-    }
-
-    if (searchResult.total === 0 || !searchResult.result?.length) {
-      setPriceResult({
-        success: true,
-        source: "trade",
-        listings: [],
-      });
-      return;
-    }
-
-    // Fetch listings
-    const listingsResult = await call<[string[], string], TradeListingsResult>(
-      "fetch_trade_listings",
-      searchResult.result,
-      searchResult.id!
-    );
-
-    if (listingsResult.success) {
-      setPriceResult({
-        success: true,
-        source: "trade",
-        listings: listingsResult.listings,
-      });
-
-      // Save median price to history (use dominant currency)
-      if (listingsResult.listings.length > 0) {
+    // Also save to price history if we have results
+    if (result.success && result.tiers.length > 0) {
+      const firstTierWithListings = result.tiers.find(t => t.listings && t.listings.length > 0);
+      if (firstTierWithListings && firstTierWithListings.listings.length > 0) {
         // Group by currency
         const byCurrency: Record<string, number[]> = {};
-        listingsResult.listings.forEach((l) => {
+        firstTierWithListings.listings.forEach((l) => {
           if (l.amount != null && l.amount > 0 && l.currency) {
             const curr = l.currency.toLowerCase();
             if (!byCurrency[curr]) byCurrency[curr] = [];
@@ -1024,7 +1268,7 @@ const PriceCheckContent: FC = () => {
           }
         });
 
-        // Find dominant currency (most listings)
+        // Find dominant currency
         let dominantCurrency = "chaos";
         let maxCount = 0;
         Object.entries(byCurrency).forEach(([curr, vals]) => {
@@ -1042,7 +1286,6 @@ const PriceCheckContent: FC = () => {
             ? values[mid]
             : (values[mid - 1] + values[mid]) / 2;
 
-          // Save to history with currency
           await call<[string, string, string, number, number, string], { success: boolean }>(
             "add_price_record",
             item.name,
@@ -1054,12 +1297,6 @@ const PriceCheckContent: FC = () => {
           );
         }
       }
-    } else {
-      setPriceResult({
-        success: false,
-        source: "trade",
-        error: listingsResult.error,
-      });
     }
   }, []);
 
@@ -1071,6 +1308,7 @@ const PriceCheckContent: FC = () => {
     setError(null);
     setParsedItem(null);
     setPriceResult(null);
+    setTieredResult(null);
     setModifiers([]);
 
     try {
@@ -1104,14 +1342,14 @@ const PriceCheckContent: FC = () => {
       });
       setModifiers(matchedMods);
 
-      // Always use Trade API for real-time prices with buyout only
-      await searchTradeApi(item, matchedMods);
+      // Use progressive search for tiered results
+      await progressiveSearch(item, matchedMods);
     } catch (e) {
       setError(`Error: ${e}`);
     } finally {
       setIsLoading(false);
     }
-  }, [searchTradeApi]);
+  }, [progressiveSearch]);
 
   /**
    * Simulate Ctrl+C and then check price
@@ -1166,15 +1404,16 @@ const PriceCheckContent: FC = () => {
 
     setIsLoading(true);
     setPriceResult(null);
+    setTieredResult(null);
 
     try {
-      await searchTradeApi(parsedItem, modifiers);
+      await progressiveSearch(parsedItem, modifiers);
     } catch (e) {
       setError(`Search error: ${e}`);
     } finally {
       setIsLoading(false);
     }
-  }, [parsedItem, modifiers, searchTradeApi]);
+  }, [parsedItem, modifiers, progressiveSearch]);
 
   // Settings panel
   if (showSettings) {
@@ -1237,7 +1476,7 @@ const PriceCheckContent: FC = () => {
       )}
 
       {/* Quick Price Summary - показываем сразу вверху */}
-      {parsedItem && priceResult && priceResult.success && (
+      {parsedItem && tieredResult && tieredResult.success && tieredResult.tiers.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,180,0,0.05) 100%)",
           border: "1px solid rgba(255,215,0,0.3)",
@@ -1248,7 +1487,7 @@ const PriceCheckContent: FC = () => {
           maxWidth: "100%",
           overflow: "hidden",
         }}>
-          {/* Price - крупно по центру */}
+          {/* Price from best tier */}
           <div style={{
             fontSize: 20,
             fontWeight: "bold",
@@ -1258,42 +1497,37 @@ const PriceCheckContent: FC = () => {
             marginBottom: 6,
           }}>
             {(() => {
-              // poe.ninja price
-              if (priceResult.source === "poe.ninja" && priceResult.price) {
-                const best = getBestPrice(priceResult.price);
-                return best ? formatPrice(best.amount, best.currency) : "N/A";
-              }
-              // Trade API - show min-max range
-              if (priceResult.source === "trade" && priceResult.listings && priceResult.listings.length > 0) {
-                const byCurrency: Record<string, number[]> = {};
-                priceResult.listings.forEach((l) => {
-                  if (l.amount != null && l.amount > 0 && l.currency) {
-                    const curr = l.currency.toLowerCase();
-                    if (!byCurrency[curr]) byCurrency[curr] = [];
-                    byCurrency[curr].push(l.amount);
-                  }
-                });
+              // Find first tier with listings
+              const tierWithListings = tieredResult.tiers.find(t => t.listings && t.listings.length > 0);
+              if (!tierWithListings) return "No price";
 
-                // Find dominant currency
-                let dominant = "chaos";
-                let maxCount = 0;
-                Object.entries(byCurrency).forEach(([curr, vals]) => {
-                  if (vals.length > maxCount) {
-                    maxCount = vals.length;
-                    dominant = curr;
-                  }
-                });
-
-                const values = byCurrency[dominant] || [];
-                if (values.length > 0) {
-                  values.sort((a, b) => a - b);
-                  const min = values[0];
-                  const max = values[values.length - 1];
-                  if (min === max) {
-                    return formatPrice(min, dominant);
-                  }
-                  return `${formatPrice(min, dominant)} — ${formatPrice(max, dominant)}`;
+              const byCurrency: Record<string, number[]> = {};
+              tierWithListings.listings.forEach((l) => {
+                if (l.amount != null && l.amount > 0 && l.currency) {
+                  const curr = l.currency.toLowerCase();
+                  if (!byCurrency[curr]) byCurrency[curr] = [];
+                  byCurrency[curr].push(l.amount);
                 }
+              });
+
+              let dominant = "chaos";
+              let maxCount = 0;
+              Object.entries(byCurrency).forEach(([curr, vals]) => {
+                if (vals.length > maxCount) {
+                  maxCount = vals.length;
+                  dominant = curr;
+                }
+              });
+
+              const values = byCurrency[dominant] || [];
+              if (values.length > 0) {
+                values.sort((a, b) => a - b);
+                const min = values[0];
+                const max = values[values.length - 1];
+                if (min === max) {
+                  return formatPrice(min, dominant);
+                }
+                return `${formatPrice(min, dominant)} — ${formatPrice(max, dominant)}`;
               }
               return "No price";
             })()}
@@ -1313,7 +1547,7 @@ const PriceCheckContent: FC = () => {
             {parsedItem.name || parsedItem.basetype}
           </div>
 
-          {/* Secondary info row */}
+          {/* Secondary info row - show tier info */}
           <div style={{
             display: "flex",
             justifyContent: "center",
@@ -1321,15 +1555,12 @@ const PriceCheckContent: FC = () => {
             fontSize: 10,
             color: "#666"
           }}>
-            <span>{priceResult.source === "poe.ninja" ? "poe.ninja" : "Trade"}</span>
+            <span>
+              {tieredResult.tiers.length} tier{tieredResult.tiers.length > 1 ? "s" : ""} searched
+            </span>
             <span>•</span>
             <span>
-              {priceResult.source === "trade" && priceResult.listings
-                ? `${priceResult.listings.length} listings`
-                : priceResult.listingsCount
-                  ? `${priceResult.listingsCount} listings`
-                  : priceResult.confidence || ""
-              }
+              {tieredResult.tiers.reduce((sum, t) => sum + t.total, 0)} total listings
             </span>
           </div>
         </div>
@@ -1453,8 +1684,8 @@ const PriceCheckContent: FC = () => {
         </PanelSection>
       )}
 
-      {/* Price Results */}
-      {priceResult && <PriceDisplay priceResult={priceResult} item={parsedItem} />}
+      {/* Tiered Price Results */}
+      {tieredResult && <TieredPriceDisplay result={tieredResult} item={parsedItem} />}
     </>
   );
 };

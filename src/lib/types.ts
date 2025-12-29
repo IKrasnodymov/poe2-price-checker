@@ -207,3 +207,29 @@ export interface PriceHistoryResult {
   records: PriceHistoryRecord[];
   count: number;
 }
+
+// =========================================================================
+// TIERED SEARCH TYPES
+// =========================================================================
+
+export interface SearchTier {
+  tier: number;
+  name: string;
+  description: string;
+  total: number;
+  listings: TradeListing[];
+  fetched: number;
+}
+
+export interface TieredSearchResult {
+  success: boolean;
+  tiers: SearchTier[];
+  ninja_price?: PoeNinjaResult;
+  stopped_at_tier: number;
+  total_searches: number;
+  error?: string;
+}
+
+export interface ModifierWithPriority extends ItemModifier {
+  priority?: number;
+}

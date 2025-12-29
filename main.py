@@ -306,6 +306,56 @@ class Plugin:
 
         return None
 
+    def score_modifier_priority(self, modifier_text: str) -> int:
+        """
+        Score a modifier's importance for pricing (higher = more valuable).
+        Used for selecting top mods in tiered search.
+        """
+        text = modifier_text.lower()
+
+        # Tier 1: Most valuable mods (90-100)
+        if "all elemental resist" in text or "all resistance" in text:
+            return 100
+        if "maximum life" in text and "%" in text:
+            return 95
+        if "movement speed" in text:
+            return 90
+
+        # Tier 2: Very valuable (80-89)
+        if "critical" in text and "multiplier" in text:
+            return 85
+        if "level" in text and "skill" in text:
+            return 82
+        if "maximum life" in text:
+            return 80
+
+        # Tier 3: Good mods (65-79)
+        if any(res in text for res in ["fire resist", "cold resist", "lightning resist", "chaos resist"]):
+            return 75
+        if "attack speed" in text:
+            return 70
+        if "cast speed" in text:
+            return 70
+        if "critical" in text and "chance" in text:
+            return 68
+
+        # Tier 4: Decent mods (50-64)
+        if "physical damage" in text:
+            return 62
+        if any(attr in text for attr in ["strength", "dexterity", "intelligence"]):
+            return 55
+        if "mana" in text:
+            return 52
+
+        # Tier 5: Lower priority (30-49)
+        if any(def_ in text for def_ in ["armour", "evasion", "energy shield"]):
+            return 45
+        if "accuracy" in text:
+            return 40
+
+        # Default
+        return 30
+
     async def load_currency_rates(self) -> None:
         """Load currency exchange rates from poe.ninja"""
         import decky
@@ -721,20 +771,22 @@ class Plugin:
     async def fetch_trade_listings(
         self,
         result_ids: List[str],
-        query_id: str
+        query_id: str,
+        limit: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Fetch detailed listings from Trade API in batches
 
         result_ids: List of item IDs from search
         query_id: Query ID from search response
+        limit: Maximum number of listings to fetch (None = all)
         """
         import decky
         if not result_ids:
             return {"success": False, "error": "No results to fetch", "listings": []}
 
-        # Fetch all IDs
-        ids_to_fetch = result_ids
+        # Apply limit if specified
+        ids_to_fetch = result_ids[:limit] if limit else result_ids
         total_to_fetch = len(ids_to_fetch)
 
         decky.logger.info(f"Fetching {total_to_fetch} listings in batches of 10")
@@ -878,6 +930,266 @@ class Plugin:
                 }
 
         return query
+
+    async def build_tiered_query(
+        self,
+        tier: int,
+        item_name: Optional[str],
+        base_type: Optional[str],
+        modifiers: List[Dict[str, Any]],
+        item_level: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Build Trade API query for a specific search tier.
+
+        Tier 1: All mods, 80% values (exact match)
+        Tier 2: Top 3 mods, 50% values (core mods)
+        Tier 3: Base type only + ilvl (base only)
+        """
+        import decky
+
+        query = {
+            "query": {
+                "status": {"option": "any"},
+                "filters": {
+                    "trade_filters": {
+                        "filters": {
+                            "sale_type": {"option": "priced"}
+                        }
+                    }
+                }
+            },
+            "sort": {"price": "asc"}
+        }
+
+        # Add item name/type
+        if item_name:
+            query["query"]["name"] = item_name
+        if base_type:
+            query["query"]["type"] = base_type
+
+        # Add item level filter for all tiers
+        if item_level and item_level > 1:
+            # Use item level range: -10 to current
+            min_ilvl = max(1, item_level - 10)
+            query["query"]["filters"]["misc_filters"] = {
+                "filters": {
+                    "ilvl": {"min": min_ilvl}
+                }
+            }
+
+        # Tier-specific logic
+        if tier == 0:
+            # Exact match: all mods, 100% values (no relaxation)
+            if modifiers:
+                enabled_mods = [m for m in modifiers if m.get("enabled") and m.get("id")]
+                if enabled_mods:
+                    stat_filters = []
+                    for mod in enabled_mods:
+                        stat_filter = {"id": mod["id"]}
+                        if mod.get("min") is not None and mod["min"] > 0:
+                            stat_filter["value"] = {"min": mod["min"]}
+                        stat_filters.append(stat_filter)
+
+                    # Require ALL mods to match
+                    query["query"]["stats"] = [{
+                        "type": "count",
+                        "filters": stat_filters,
+                        "value": {"min": len(stat_filters)}
+                    }]
+                    decky.logger.info(f"Tier 0: {len(stat_filters)} mods, 100% values, require ALL")
+
+        elif tier == 1:
+            # Relaxed match: all mods, 80% values
+            if modifiers:
+                enabled_mods = [m for m in modifiers if m.get("enabled") and m.get("id")]
+                if enabled_mods:
+                    stat_filters = []
+                    for mod in enabled_mods:
+                        stat_filter = {"id": mod["id"]}
+                        if mod.get("min") is not None:
+                            relaxed_min = int(mod["min"] * 0.8)
+                            if relaxed_min > 0:
+                                stat_filter["value"] = {"min": relaxed_min}
+                        stat_filters.append(stat_filter)
+
+                    # Require matching most mods
+                    min_count = max(1, len(stat_filters) - 1)
+                    query["query"]["stats"] = [{
+                        "type": "count",
+                        "filters": stat_filters,
+                        "value": {"min": min_count}
+                    }]
+                    decky.logger.info(f"Tier 1: {len(stat_filters)} mods, 80% values, require {min_count}")
+
+        elif tier == 2:
+            # Core mods: top 3 by priority, 50% values
+            if modifiers:
+                enabled_mods = [m for m in modifiers if m.get("enabled") and m.get("id")]
+                if enabled_mods:
+                    # Sort by priority and take top 3
+                    for mod in enabled_mods:
+                        mod["priority"] = Plugin.score_modifier_priority(self, mod.get("text", ""))
+                    sorted_mods = sorted(enabled_mods, key=lambda x: x.get("priority", 0), reverse=True)
+                    top_mods = sorted_mods[:3]
+
+                    stat_filters = []
+                    for mod in top_mods:
+                        stat_filter = {"id": mod["id"]}
+                        if mod.get("min") is not None:
+                            relaxed_min = int(mod["min"] * 0.5)  # 50% relaxation
+                            if relaxed_min > 0:
+                                stat_filter["value"] = {"min": relaxed_min}
+                        stat_filters.append(stat_filter)
+
+                    if stat_filters:
+                        # Require at least 2 of top 3 mods
+                        min_count = min(2, len(stat_filters))
+                        query["query"]["stats"] = [{
+                            "type": "count",
+                            "filters": stat_filters,
+                            "value": {"min": min_count}
+                        }]
+                        mod_names = [m.get("text", "")[:30] for m in top_mods]
+                        decky.logger.info(f"Tier 2: top {len(top_mods)} mods: {mod_names}")
+
+        elif tier == 3:
+            # Base only: no modifiers, just type + ilvl
+            # Already handled above - no stats filter needed
+            decky.logger.info(f"Tier 3: base only - {base_type}")
+
+        return query
+
+    async def progressive_search(
+        self,
+        item_name: Optional[str],
+        base_type: Optional[str],
+        rarity: str,
+        modifiers: List[Dict[str, Any]],
+        item_level: Optional[int] = None,
+        ninja_type: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Progressive tiered search with smart early stopping.
+
+        Searches through tiers:
+        - Tier 1: Exact match (all mods, 80% values)
+        - Tier 2: Core mods (top 3 mods, 50% values)
+        - Tier 3: Base only (just base type + ilvl)
+
+        Stops early if enough results found.
+        Also fetches poe.ninja price in parallel for uniques.
+        """
+        import decky
+        decky.logger.info(f"Progressive search: {item_name or base_type}, {len(modifiers)} mods")
+
+        result = {
+            "success": True,
+            "tiers": [],
+            "ninja_price": None,
+            "stopped_at_tier": 0,
+            "total_searches": 0,
+            "error": None
+        }
+
+        # Tier names and descriptions
+        tier_info = {
+            0: {"name": "Exact Match", "description": "All mods, 100% values"},
+            1: {"name": "Similar", "description": "All mods, 80% values"},
+            2: {"name": "Core Mods", "description": "Top 3 mods, 50% values"},
+            3: {"name": "Base Only", "description": f"{base_type or 'Any'} ilvl {item_level or 'any'}+"}
+        }
+
+        # Fetch limits per tier (for speed optimization)
+        fetch_limits = {0: 10, 1: 10, 2: 15, 3: 20}
+
+        # Early stop threshold
+        early_stop_count = 5
+
+        # For uniques, also try poe.ninja (fast, parallel would be ideal but we'll do it first)
+        if rarity == "Unique" and item_name and ninja_type:
+            try:
+                ninja_result = await Plugin.fetch_poe_ninja(self, ninja_type, item_name)
+                if ninja_result.get("success"):
+                    result["ninja_price"] = ninja_result
+                    decky.logger.info(f"poe.ninja price: {ninja_result.get('price', {}).get('chaos')}c")
+            except Exception as e:
+                decky.logger.warning(f"poe.ninja lookup failed: {e}")
+
+        # Determine which item identifier to use for Trade API
+        # For uniques: use name, for rares: use base_type
+        search_name = item_name if rarity == "Unique" else None
+        search_type = base_type
+
+        # Progressive tier search
+        total_found = 0
+        for tier in [0, 1, 2, 3]:
+            try:
+                # Build query for this tier
+                query = await Plugin.build_tiered_query(
+                    self, tier, search_name, search_type, modifiers, item_level
+                )
+
+                # Skip tier 0, 1, 2 if no modifiers
+                if tier < 3 and not modifiers:
+                    decky.logger.info(f"Skipping tier {tier}: no modifiers")
+                    continue
+
+                # Search
+                search_result = await Plugin.search_trade_api(self, query)
+                result["total_searches"] += 1
+
+                if not search_result.get("success"):
+                    decky.logger.warning(f"Tier {tier} search failed: {search_result.get('error')}")
+                    continue
+
+                tier_total = search_result.get("total", 0)
+                result_ids = search_result.get("result", [])
+
+                # Fetch listings (with limit)
+                listings = []
+                if result_ids:
+                    fetch_result = await Plugin.fetch_trade_listings(
+                        self,
+                        result_ids,
+                        search_result.get("id", ""),
+                        limit=fetch_limits.get(tier, 10)
+                    )
+                    if fetch_result.get("success"):
+                        listings = fetch_result.get("listings", [])
+
+                # Add tier result
+                tier_result = {
+                    "tier": tier,
+                    "name": tier_info[tier]["name"],
+                    "description": tier_info[tier]["description"],
+                    "total": tier_total,
+                    "listings": listings,
+                    "fetched": len(listings)
+                }
+                result["tiers"].append(tier_result)
+                result["stopped_at_tier"] = tier
+
+                total_found += tier_total
+                decky.logger.info(f"Tier {tier}: {tier_total} total, {len(listings)} fetched")
+
+                # Early stop if we have enough results
+                if tier_total >= early_stop_count:
+                    decky.logger.info(f"Early stop at tier {tier}: {tier_total} >= {early_stop_count}")
+                    break
+
+            except Exception as e:
+                decky.logger.error(f"Tier {tier} error: {e}")
+                import traceback
+                decky.logger.error(traceback.format_exc())
+                continue
+
+        # If no tiers found anything
+        if not result["tiers"]:
+            result["error"] = "No listings found in any tier"
+
+        decky.logger.info(f"Progressive search complete: {len(result['tiers'])} tiers, {result['total_searches']} searches")
+        return result
 
     # =========================================================================
     # SETTINGS MANAGEMENT

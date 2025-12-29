@@ -487,3 +487,70 @@ export function getBestPrice(price: {
   }
   return null;
 }
+
+/**
+ * Get modifier priority score for tiered search.
+ * Higher score = more important for pricing.
+ * Used to select "top" mods for Core Mods tier.
+ */
+export function getModifierPriority(modifierText: string): number {
+  const text = modifierText.toLowerCase();
+
+  // Tier 1: Most valuable mods (90-100)
+  if (text.includes("all elemental resist") || text.includes("all resistance")) {
+    return 100;
+  }
+  if (text.includes("maximum life") && text.includes("%")) {
+    return 95;
+  }
+  if (text.includes("movement speed")) {
+    return 90;
+  }
+
+  // Tier 2: Very valuable (80-89)
+  if (text.includes("critical") && text.includes("multiplier")) {
+    return 85;
+  }
+  if (text.includes("level") && text.includes("skill")) {
+    return 82;
+  }
+  if (text.includes("maximum life")) {
+    return 80;
+  }
+
+  // Tier 3: Good mods (65-79)
+  if (/fire resist|cold resist|lightning resist|chaos resist/i.test(text)) {
+    return 75;
+  }
+  if (text.includes("attack speed")) {
+    return 70;
+  }
+  if (text.includes("cast speed")) {
+    return 70;
+  }
+  if (text.includes("critical") && text.includes("chance")) {
+    return 68;
+  }
+
+  // Tier 4: Decent mods (50-64)
+  if (text.includes("physical damage")) {
+    return 62;
+  }
+  if (/strength|dexterity|intelligence/i.test(text)) {
+    return 55;
+  }
+  if (text.includes("mana")) {
+    return 52;
+  }
+
+  // Tier 5: Lower priority (30-49)
+  if (/armour|evasion|energy shield/i.test(text)) {
+    return 45;
+  }
+  if (text.includes("accuracy")) {
+    return 40;
+  }
+
+  // Default
+  return 30;
+}
