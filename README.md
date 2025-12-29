@@ -36,9 +36,20 @@ sudo pacman -S xclip xsel wl-clipboard xdotool
 
 ### Step 3: Install the Plugin
 
-#### Option A: Download Release (Recommended)
+#### Option A: Install via Decky Developer Mode (Easiest)
 
-1. Download the latest `poe2-price-checker.zip` from Releases
+1. Download [`poe2-price-checker.zip`](https://github.com/ikrasnodymov/poe2-price-checker/raw/main/poe2-price-checker.zip)
+2. Copy the ZIP file to your Steam Deck (USB drive, cloud, or network transfer)
+3. On Steam Deck, open **Decky Loader** (... button → Decky)
+4. Go to **Settings** (gear icon) → **Developer**
+5. Enable **Developer Mode**
+6. Click **Install Plugin from ZIP**
+7. Select the downloaded `poe2-price-checker.zip`
+8. Done! The plugin will appear in your Decky menu
+
+#### Option B: Manual Install via SSH
+
+1. Download `poe2-price-checker.zip` from the link above
 2. Copy to Steam Deck and extract:
    ```bash
    sudo unzip poe2-price-checker.zip -d ~/homebrew/plugins/
@@ -46,7 +57,7 @@ sudo pacman -S xclip xsel wl-clipboard xdotool
    sudo systemctl restart plugin_loader
    ```
 
-#### Option B: Build from Source
+#### Option C: Build from Source
 
 ```bash
 # Clone repository
