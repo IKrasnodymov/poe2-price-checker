@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+py_modules/
+
+# Build output
+dist/
+*.pyc
+__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Decky dev
+backend/out/
+
+# Development notes (internal)
+CLAUDE.md
+ssh-setup.md
+
+# Claude Code
+.claude/
+
+# Build artifacts
+poe2-price-checker.zip
+*.zip

@@ -1,0 +1,50 @@
+{
+  "name": "poe2-price-checker",
+  "version": "1.0.0",
+  "description": "PoE2 Price Checker for Steam Deck - check item prices in Path of Exile 2",
+  "type": "module",
+  "scripts": {
+    "build": "shx rm -rf dist && rollup -c",
+    "watch": "rollup -c -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ikrasnodymov/poe2-price-checker"
+  },
+  "keywords": [
+    "decky",
+    "plugin",
+    "steam-deck",
+    "path-of-exile-2",
+    "poe2",
+    "price-check"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@decky/api": "^1.1.2",
+    "@decky/rollup": "^1.0.1",
+    "@decky/ui": "^4.7.2",
+    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-replace": "^6.0.1",
+    "@rollup/plugin-typescript": "^12.1.1",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-icons": "^5.3.0",
+    "rollup": "^4.24.4",
+    "shx": "^0.3.4",
+    "tslib": "^2.8.1",
+    "typescript": "^5.6.3"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ]
+    }
+  }
+}

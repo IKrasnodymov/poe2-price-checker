@@ -1,0 +1,11 @@
+{
+  "name": "PoE2 Price Checker",
+  "author": "poe2-price-checker",
+  "flags": ["_root"],
+  "api_version": 1,
+  "publish": {
+    "tags": ["games", "utility", "path-of-exile"],
+    "description": "Price check Path of Exile 2 items directly from Steam Deck using poe.ninja and Trade API",
+    "image": "https://raw.githubusercontent.com/ikrasnodymov/poe2-price-checker/main/assets/icon.png"
+  }
+}
