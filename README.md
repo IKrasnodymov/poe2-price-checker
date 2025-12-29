@@ -1,12 +1,15 @@
 # PoE2 Price Checker - Decky Loader Plugin
 
-A Steam Deck plugin for checking Path of Exile 2 item prices directly in Gaming Mode using poe.ninja and the official Trade API.
+A Steam Deck plugin for checking Path of Exile 2 item prices directly in Gaming Mode using poe2scout and the official Trade API.
 
 ## Features
 
 - **Auto Price Check**: Automatically checks clipboard when you open the plugin
+- **Smart Caching**: Shows cached prices instantly for previously scanned items
+- **Tiered Search System**: Progressive search from exact match to base type for best price accuracy
 - **Trade API Integration**: Search official PoE2 Trade API with real-time listings
-- **poe.ninja Prices**: Get aggregated price data from poe.ninja
+- **poe2scout Prices**: Get aggregated price data for uniques and currency
+- **Scan History**: View all previously scanned items with price dynamics over time
 - **Modifier Filtering**: Toggle modifiers to refine price search
 - **League Selection**: Choose your current league in settings
 
@@ -112,7 +115,8 @@ Now you can: Hover item → Press L4 → Open Decky → See price!
 |---------|-------------|
 | **League** | Select your current league (e.g., "Fate of the Vaal") |
 | **Use Trade API** | Enable/disable official Trade API searches |
-| **Use poe.ninja** | Enable/disable poe.ninja price lookups |
+| **Use poe2scout** | Enable/disable poe2scout price lookups for uniques/currency |
+| **Auto-check on open** | Automatically check clipboard when plugin opens |
 | **POESESSID** | Optional: Your session ID for authenticated requests |
 
 ## Troubleshooting
@@ -183,17 +187,20 @@ Click **"Show Debug Info"** in Settings to see:
 ┌─────────────────────────────────────────────────────┐
 │  Python Backend (main.py)                           │
 │  - Reads clipboard via subprocess                   │
-│  - Calls poe.ninja API                             │
-│  - Calls Trade API                                 │
-│  - Manages settings                                │
+│  - Tiered search: exact → your item → similar → base│
+│  - Calls poe2scout API for uniques/currency        │
+│  - Calls Trade API for rares/magic                 │
+│  - Scan history with price dynamics                │
+│  - Smart caching for instant results               │
 └──────────────────────┬──────────────────────────────┘
                        ▼
 ┌─────────────────────────────────────────────────────┐
 │  React Frontend (index.tsx)                         │
 │  - Auto-checks clipboard on open                   │
-│  - Parses item text                                │
-│  - Displays modifiers with toggles                 │
-│  - Shows prices and listings                       │
+│  - Cache-first: shows cached prices instantly      │
+│  - Parses item text (English only)                 │
+│  - Displays tiered search results                  │
+│  - Scan history with rescan option                 │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -201,7 +208,7 @@ Click **"Show Debug Info"** in Settings to see:
 
 | API | Endpoint | Purpose |
 |-----|----------|---------|
-| poe.ninja | `https://poe.ninja/api/data/itemoverview` | Unique/currency prices |
+| poe2scout | `https://poe2scout.com/api/items` | Unique/currency prices |
 | Trade Search | `https://www.pathofexile.com/api/trade2/search/poe2/{league}` | Find items |
 | Trade Fetch | `https://www.pathofexile.com/api/trade2/fetch/{ids}` | Get listings |
 
@@ -246,7 +253,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Credits
 
 - [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) - Plugin framework
-- [poe.ninja](https://poe.ninja) - Price data
+- [poe2scout](https://poe2scout.com) - Price data for uniques and currency
 - [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2) - Parser reference
 - [Path of Exile 2](https://pathofexile.com) - Trade API
 
