@@ -41,7 +41,7 @@ sudo pacman -S xclip xsel wl-clipboard xdotool
 
 #### Option A: Install via Decky Developer Mode (Easiest)
 
-1. Download [`poe2-price-checker.zip`](https://github.com/ikrasnodymov/poe2-price-checker/raw/main/poe2-price-checker.zip)
+1. Download [`poe2-price-checker.zip`](https://github.com/IKrasnodymov/poe2-price-checker/raw/master/poe2-price-checker.zip)
 2. Copy the ZIP file to your Steam Deck (USB drive, cloud, or network transfer)
 3. On Steam Deck, open **Decky Loader** (... button → Decky)
 4. Go to **Settings** (gear icon) → **Developer**
