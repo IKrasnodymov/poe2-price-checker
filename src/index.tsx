@@ -33,6 +33,9 @@ import {
   FaArrowDown,
   FaMinus,
   FaTrash,
+  FaBars,
+  FaChevronDown,
+  FaClipboardCheck,
 } from "react-icons/fa";
 
 import {
@@ -232,18 +235,18 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ onBack }) => {
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title="Как пользоваться">
+      <PanelSection title="How to Use">
         <PanelSectionRow>
           <div style={{ padding: 8, fontSize: 11, color: "#888" }}>
-            1. Наведи курсор на предмет в PoE2
+            1. Hover cursor on item in PoE2
             <br />
-            2. Нажми Ctrl+C (скопировать)
+            2. Press Ctrl+C (copy)
             <br />
-            3. Открой Decky (...) → цена покажется автоматически
+            3. Open Decky (...) → price appears automatically
             <br />
             <br />
             <span style={{ color: "#0ff" }}>
-              Совет: Настрой заднюю кнопку (L4/R4) на Ctrl+C в Steam Input
+              Tip: Map back button (L4/R4) to Ctrl+C in Steam Input
             </span>
           </div>
         </PanelSectionRow>
@@ -1035,25 +1038,24 @@ const ItemDisplay: FC<ItemDisplayProps> = ({ item }) => {
 };
 
 // =========================================================================
-// MODIFIER FILTER COMPONENT
+// MODIFIER FILTER COMPONENT (Compact inline version)
 // =========================================================================
 
 interface ModifierFilterProps {
   modifier: ItemModifier;
   index: number;
   onToggle: (index: number) => void;
-  onValueChange: (index: number, min?: number, max?: number) => void;
 }
 
 // Type badge colors
-const MOD_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  implicit: { bg: "rgba(100,100,255,0.2)", text: "#88f" },
-  explicit: { bg: "rgba(255,255,255,0.05)", text: "#aaa" },
-  crafted: { bg: "rgba(180,140,255,0.2)", text: "#b8f" },
-  enchant: { bg: "rgba(180,230,255,0.2)", text: "#8ef" },
+const MOD_TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  implicit: { bg: "rgba(100,100,255,0.15)", text: "#88f", border: "rgba(100,100,255,0.3)" },
+  explicit: { bg: "rgba(255,255,255,0.05)", text: "#aaa", border: "rgba(255,255,255,0.1)" },
+  crafted: { bg: "rgba(180,140,255,0.15)", text: "#b8f", border: "rgba(180,140,255,0.3)" },
+  enchant: { bg: "rgba(180,230,255,0.15)", text: "#8ef", border: "rgba(180,230,255,0.3)" },
 };
 
-const ModifierFilter: FC<ModifierFilterProps> = ({
+const ModifierFilterItem: FC<ModifierFilterProps> = ({
   modifier,
   index,
   onToggle,
@@ -1064,75 +1066,82 @@ const ModifierFilter: FC<ModifierFilterProps> = ({
   const parts = modifier.text.split(/(\+?-?\d+(?:\.\d+)?%?)/g);
 
   return (
-    <PanelSectionRow>
-      <div style={{
+    <div
+      onClick={() => onToggle(index)}
+      style={{
         display: "flex",
         alignItems: "flex-start",
-        gap: 6,
-        padding: "4px 0",
-        width: "100%",
-        maxWidth: "100%",
-        overflow: "hidden",
-      }}>
-        {/* Toggle checkbox */}
-        <input
-          type="checkbox"
-          checked={modifier.enabled}
-          onChange={() => onToggle(index)}
-          style={{
-            marginTop: 2,
-            accentColor: "#ffd700",
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        />
+        gap: 8,
+        padding: "6px 10px",
+        cursor: "pointer",
+        background: modifier.enabled ? typeColor.bg : "transparent",
+        borderLeft: `2px solid ${modifier.enabled ? typeColor.border : "transparent"}`,
+        transition: "all 0.15s ease",
+      }}
+    >
+      {/* Toggle checkbox */}
+      <input
+        type="checkbox"
+        checked={modifier.enabled}
+        onChange={(e) => {
+          e.stopPropagation();
+          onToggle(index);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          marginTop: 2,
+          width: 16,
+          height: 16,
+          accentColor: "#ffd700",
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      />
 
-        {/* Modifier content */}
-        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-          {/* Type badge */}
-          <span style={{
-            fontSize: 8,
-            padding: "1px 3px",
-            borderRadius: 2,
-            backgroundColor: typeColor.bg,
-            color: typeColor.text,
-            marginRight: 4,
-            textTransform: "uppercase",
-          }}>
-            {modifier.type.substring(0, 3)}
-          </span>
-
-          {/* Modifier text with highlighted values */}
-          <span style={{
-            fontSize: 11,
-            color: modifier.enabled ? "#ddd" : "#666",
-            wordBreak: "break-word",
-            lineHeight: 1.3,
-          }}>
-            {parts.map((part, i) =>
-              /\+?-?\d+(?:\.\d+)?%?/.test(part) ? (
-                <span key={i} style={{ color: "#ffd700", fontWeight: "bold" }}>
-                  {part}
-                </span>
-              ) : (
-                <span key={i}>{part}</span>
-              )
-            )}
-          </span>
-
-          {/* Tier info if available */}
-          {modifier.tier && (
-            <span style={{
-              fontSize: 9,
-              color: "#666",
-              marginLeft: 4
-            }}>
-              T{modifier.tier}
-            </span>
+      {/* Modifier content */}
+      <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+        {/* Modifier text with highlighted values */}
+        <span style={{
+          fontSize: 11,
+          color: modifier.enabled ? "#ddd" : "#666",
+          wordBreak: "break-word",
+          lineHeight: 1.4,
+        }}>
+          {parts.map((part, i) =>
+            /\+?-?\d+(?:\.\d+)?%?/.test(part) ? (
+              <span key={i} style={{ color: modifier.enabled ? "#ffd700" : "#997a00", fontWeight: "bold" }}>
+                {part}
+              </span>
+            ) : (
+              <span key={i}>{part}</span>
+            )
           )}
-        </div>
+        </span>
       </div>
-    </PanelSectionRow>
+
+      {/* Type badge + Tier on the right */}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+        {modifier.tier && (
+          <span style={{
+            fontSize: 9,
+            color: "#666",
+          }}>
+            T{modifier.tier}
+          </span>
+        )}
+        <span style={{
+          fontSize: 8,
+          padding: "2px 4px",
+          borderRadius: 3,
+          backgroundColor: typeColor.bg,
+          color: typeColor.text,
+          textTransform: "uppercase",
+          fontWeight: "bold",
+        }}>
+          {modifier.type.substring(0, 3)}
+        </span>
+      </div>
+    </div>
   );
 };
 
@@ -1479,10 +1488,10 @@ const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
   };
 
   const getTierLabel = (tierNum: number) => {
-    if (tierNum === 0) return "ТОЧНОЕ";
-    if (tierNum === 1) return "ВАША ВЕЩЬ";
-    if (tierNum === 2) return "ПОХОЖИЕ";
-    return "БАЗА";
+    if (tierNum === 0) return "EXACT";
+    if (tierNum === 1) return "YOUR ITEM";
+    if (tierNum === 2) return "SIMILAR";
+    return "BASE";
   };
 
   const toggleTier = (tierNum: number) => {
@@ -1665,6 +1674,129 @@ const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
         </PanelSection>
       )}
     </>
+  );
+};
+
+// =========================================================================
+// ACTION MENU COMPONENT (Collapsible)
+// =========================================================================
+
+interface ActionMenuProps {
+  onPasteAndCheck: () => void;
+  onShowHistory: () => void;
+  onShowSettings: () => void;
+  isLoading: boolean;
+}
+
+const ActionMenu: FC<ActionMenuProps> = ({
+  onPasteAndCheck,
+  onShowHistory,
+  onShowSettings,
+  isLoading,
+}) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const handlePasteAndCheck = () => {
+    setExpanded(false); // Collapse menu after action
+    onPasteAndCheck();
+  };
+
+  return (
+    <div style={{ margin: "8px 16px" }}>
+      {/* Header - always visible */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: "linear-gradient(135deg, rgba(100,100,100,0.3) 0%, rgba(60,60,60,0.2) 100%)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: expanded ? "8px 8px 0 0" : 8,
+          padding: "10px 12px",
+          cursor: "pointer",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8, color: "#ddd" }}>
+          <FaBars />
+          Menu
+        </span>
+        <span
+          style={{
+            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s",
+            color: "#888",
+          }}
+        >
+          <FaChevronDown />
+        </span>
+      </div>
+
+      {/* Expandable content */}
+      {expanded && (
+        <div
+          style={{
+            background: "rgba(30,30,30,0.9)",
+            borderRadius: "0 0 8px 8px",
+            padding: 8,
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderTop: "none",
+          }}
+        >
+          {/* Paste and Check - main action */}
+          <div
+            onClick={isLoading ? undefined : handlePasteAndCheck}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 4,
+              cursor: isLoading ? "not-allowed" : "pointer",
+              opacity: isLoading ? 0.5 : 1,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "rgba(255,215,0,0.1)",
+              marginBottom: 4,
+            }}
+          >
+            <FaClipboardCheck style={{ color: "#ffd700" }} />
+            <span style={{ color: "#fff" }}>Paste and Check</span>
+          </div>
+
+          {/* Scan History */}
+          <div
+            onClick={onShowHistory}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 4,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
+            <FaHistory style={{ color: "#4dabf7" }} />
+            <span style={{ color: "#ddd" }}>Scan History</span>
+          </div>
+
+          {/* Settings */}
+          <div
+            onClick={onShowSettings}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 4,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <FaCog style={{ color: "#868e96" }} />
+            <span style={{ color: "#ddd" }}>Settings</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -2063,67 +2195,7 @@ const PriceCheckContent: FC = () => {
 
   return (
     <>
-      {/* Action Buttons */}
-      <PanelSection title="PoE2 Price Checker">
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={copyAndCheck} disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Spinner style={{ marginRight: 8, width: 16, height: 16 }} />
-                Checking...
-              </>
-            ) : (
-              <>
-                <FaCoins style={{ marginRight: 8 }} />
-                Copy & Check Price
-              </>
-            )}
-          </ButtonItem>
-        </PanelSectionRow>
-
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => checkPrice()} disabled={isLoading}>
-            <FaClipboard style={{ marginRight: 8 }} />
-            Check Clipboard Only
-          </ButtonItem>
-        </PanelSectionRow>
-
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => setShowHistory(true)}>
-            <FaHistory style={{ marginRight: 8 }} />
-            Scan History
-          </ButtonItem>
-        </PanelSectionRow>
-
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={() => setShowSettings(true)}>
-            <FaCog style={{ marginRight: 8 }} />
-            Settings
-          </ButtonItem>
-        </PanelSectionRow>
-      </PanelSection>
-
-      {/* Error Display */}
-      {error && (
-        <PanelSection title="Error">
-          <PanelSectionRow>
-            <div
-              style={{
-                color: "#ff6b6b",
-                padding: 8,
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 8,
-              }}
-            >
-              <FaExclamationTriangle style={{ marginTop: 2, flexShrink: 0 }} />
-              <span>{error}</span>
-            </div>
-          </PanelSectionRow>
-        </PanelSection>
-      )}
-
-      {/* Quick Price Summary - показываем сразу вверху */}
+      {/* Quick Price Summary - display FIRST (if there's a result) */}
       {parsedItem && tieredResult && tieredResult.success && tieredResult.tiers.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,180,0,0.05) 100%)",
@@ -2214,6 +2286,31 @@ const PriceCheckContent: FC = () => {
         </div>
       )}
 
+      {/* Collapsible Action Menu */}
+      <ActionMenu
+        onPasteAndCheck={copyAndCheck}
+        onShowHistory={() => setShowHistory(true)}
+        onShowSettings={() => setShowSettings(true)}
+        isLoading={isLoading}
+      />
+
+      {/* Error Display */}
+      {error && (
+        <div style={{
+          background: "rgba(255,100,100,0.1)",
+          border: "1px solid rgba(255,100,100,0.3)",
+          borderRadius: 8,
+          padding: "10px 12px",
+          margin: "8px 16px",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+        }}>
+          <FaExclamationTriangle style={{ marginTop: 2, flexShrink: 0, color: "#ff6b6b" }} />
+          <span style={{ color: "#ff6b6b", fontSize: 12 }}>{error}</span>
+        </div>
+      )}
+
       {/* Loading indicator */}
       {isLoading && parsedItem && (
         <div style={{
@@ -2234,102 +2331,149 @@ const PriceCheckContent: FC = () => {
       {/* Parsed Item Display */}
       {parsedItem && <ItemDisplay item={parsedItem} />}
 
-      {/* Modifier Filters */}
+      {/* Quick Search Button - when item is parsed but no results yet */}
+      {parsedItem && !tieredResult && !isLoading && modifiers.length === 0 && (
+        <div
+          onClick={() => checkPrice(true)}
+          style={{
+            background: "linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,180,0,0.15) 100%)",
+            border: "1px solid rgba(255,215,0,0.4)",
+            borderRadius: 8,
+            padding: "12px 16px",
+            margin: "8px 16px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+          }}
+        >
+          <FaSync style={{ color: "#ffd700", fontSize: 14 }} />
+          <span style={{ color: "#ffd700", fontWeight: "bold", fontSize: 14 }}>
+            Find Price
+          </span>
+        </div>
+      )}
+
+      {/* Modifier Filters - New compact design */}
       {modifiers.length > 0 && (
-        <PanelSection title={`Modifiers (${modifiers.filter(m => m.enabled).length}/${modifiers.length} selected)`}>
-          {/* Group modifiers by type */}
-          {(() => {
-            const implicits = modifiers.filter((m, i) => m.type === "implicit").map((m, i) => ({ mod: m, idx: modifiers.indexOf(m) }));
-            const explicits = modifiers.filter((m, i) => m.type === "explicit").map((m, i) => ({ mod: m, idx: modifiers.indexOf(m) }));
-            const crafted = modifiers.filter((m, i) => m.type === "crafted").map((m, i) => ({ mod: m, idx: modifiers.indexOf(m) }));
-
-            return (
-              <>
-                {implicits.map(({ mod, idx }) => (
-                  <ModifierFilter
-                    key={idx}
-                    modifier={mod}
-                    index={idx}
-                    onToggle={toggleModifier}
-                    onValueChange={() => {}}
-                  />
-                ))}
-                {implicits.length > 0 && explicits.length > 0 && (
-                  <div style={{ borderTop: "1px solid #333", margin: "4px 0" }} />
-                )}
-                {explicits.map(({ mod, idx }) => (
-                  <ModifierFilter
-                    key={idx}
-                    modifier={mod}
-                    index={idx}
-                    onToggle={toggleModifier}
-                    onValueChange={() => {}}
-                  />
-                ))}
-                {crafted.length > 0 && (
-                  <div style={{ borderTop: "1px solid #333", margin: "4px 0" }} />
-                )}
-                {crafted.map(({ mod, idx }) => (
-                  <ModifierFilter
-                    key={idx}
-                    modifier={mod}
-                    index={idx}
-                    onToggle={toggleModifier}
-                    onValueChange={() => {}}
-                  />
-                ))}
-              </>
-            );
-          })()}
-
-          <PanelSectionRow>
-            <div style={{ display: "flex", gap: 8, width: "100%" }}>
-              <button
-                onClick={() => {
-                  const newMods = modifiers.map(m => ({ ...m, enabled: true }));
-                  setModifiers(newMods);
-                }}
+        <div style={{ margin: "8px 16px" }}>
+          {/* Header with title and action buttons */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(100,100,100,0.3) 0%, rgba(60,60,60,0.2) 100%)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "8px 8px 0 0",
+            padding: "8px 12px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}>
+            <span style={{ color: "#ddd", fontSize: 12 }}>
+              Modifiers ({modifiers.filter(m => m.enabled).length}/{modifiers.length})
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <span
+                onClick={() => setModifiers(modifiers.map(m => ({ ...m, enabled: true })))}
                 style={{
-                  flex: 1,
-                  padding: "8px 12px",
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1px solid #444",
-                  borderRadius: 4,
-                  color: "#fff",
+                  fontSize: 10,
+                  color: "#4dabf7",
                   cursor: "pointer",
-                  fontSize: 12
+                  padding: "2px 6px",
+                  borderRadius: 3,
+                  background: "rgba(77,171,247,0.1)",
                 }}
               >
-                Select All
-              </button>
-              <button
-                onClick={() => {
-                  const newMods = modifiers.map(m => ({ ...m, enabled: false }));
-                  setModifiers(newMods);
-                }}
+                All
+              </span>
+              <span
+                onClick={() => setModifiers(modifiers.map(m => ({ ...m, enabled: false })))}
                 style={{
-                  flex: 1,
-                  padding: "8px 12px",
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1px solid #444",
-                  borderRadius: 4,
-                  color: "#fff",
+                  fontSize: 10,
+                  color: "#868e96",
                   cursor: "pointer",
-                  fontSize: 12
+                  padding: "2px 6px",
+                  borderRadius: 3,
+                  background: "rgba(134,142,150,0.1)",
                 }}
               >
-                Clear All
-              </button>
+                Reset
+              </span>
             </div>
-          </PanelSectionRow>
+          </div>
 
-          <PanelSectionRow>
-            <ButtonItem layout="below" onClick={reSearch} disabled={isLoading}>
-              <FaSync style={{ marginRight: 8 }} />
-              Search with {modifiers.filter(m => m.enabled).length} Filters
-            </ButtonItem>
-          </PanelSectionRow>
-        </PanelSection>
+          {/* Modifiers list */}
+          <div style={{
+            background: "rgba(30,30,30,0.9)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderTop: "none",
+            maxHeight: 200,
+            overflowY: "auto",
+          }}>
+            {(() => {
+              const implicits = modifiers.filter(m => m.type === "implicit").map(m => ({ mod: m, idx: modifiers.indexOf(m) }));
+              const explicits = modifiers.filter(m => m.type === "explicit").map(m => ({ mod: m, idx: modifiers.indexOf(m) }));
+              const crafted = modifiers.filter(m => m.type === "crafted").map(m => ({ mod: m, idx: modifiers.indexOf(m) }));
+
+              return (
+                <>
+                  {implicits.map(({ mod, idx }) => (
+                    <ModifierFilterItem
+                      key={idx}
+                      modifier={mod}
+                      index={idx}
+                      onToggle={toggleModifier}
+                    />
+                  ))}
+                  {implicits.length > 0 && explicits.length > 0 && (
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", margin: "0" }} />
+                  )}
+                  {explicits.map(({ mod, idx }) => (
+                    <ModifierFilterItem
+                      key={idx}
+                      modifier={mod}
+                      index={idx}
+                      onToggle={toggleModifier}
+                    />
+                  ))}
+                  {crafted.length > 0 && (
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", margin: "0" }} />
+                  )}
+                  {crafted.map(({ mod, idx }) => (
+                    <ModifierFilterItem
+                      key={idx}
+                      modifier={mod}
+                      index={idx}
+                      onToggle={toggleModifier}
+                    />
+                  ))}
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Search button */}
+          <div
+            onClick={isLoading ? undefined : reSearch}
+            style={{
+              background: "linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,180,0,0.1) 100%)",
+              border: "1px solid rgba(255,215,0,0.3)",
+              borderTop: "none",
+              borderRadius: "0 0 8px 8px",
+              padding: "10px 12px",
+              cursor: isLoading ? "not-allowed" : "pointer",
+              opacity: isLoading ? 0.5 : 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <FaSync style={{ color: "#ffd700" }} />
+            <span style={{ color: "#ffd700", fontWeight: "bold", fontSize: 12 }}>
+              Search ({modifiers.filter(m => m.enabled).length} filters)
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Tiered Price Results */}
