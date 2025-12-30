@@ -47,6 +47,9 @@ class Plugin:
     poe2scout_cache: Dict[str, Any] = None  # type: ignore  # {items: {name: data}, currency: {apiId: data}}
     poe2scout_divine_price: float = 100.0  # Divine price in exalted from /api/leagues
 
+    # Debug: store last fetched listings for debugging
+    last_debug_listings: List[Dict[str, Any]] = None  # type: ignore
+
     # =========================================================================
     # LIFECYCLE METHODS
     # =========================================================================
@@ -100,6 +103,7 @@ class Plugin:
 
         # Load price history
         Plugin.price_history = {}
+        Plugin.last_debug_listings = []
         try:
             await Plugin.load_price_history(self)
         except Exception as e:
@@ -537,6 +541,10 @@ class Plugin:
         """Return current currency rates"""
         return {"success": True, "rates": self.currency_rates}
 
+    async def get_debug_listings(self) -> Dict[str, Any]:
+        """Return last fetched listings for debugging"""
+        return {"success": True, "listings": Plugin.last_debug_listings or []}
+
     # =========================================================================
     # PRICE HISTORY (LOCAL CACHE)
     # =========================================================================
@@ -622,7 +630,7 @@ class Plugin:
         # Save to file
         await self.save_price_history()
 
-        decky.logger.info(f"Added price record for {key}: {median_price:.1f} {currency}")
+        decky.logger.info(f"Added price record for {key}: {median_price:.1f} {currency} (received currency={currency})")
         return {"success": True}
 
     async def get_price_history(
@@ -1183,13 +1191,9 @@ class Plugin:
                         currency = price.get("currency")
                         account = listing.get("account", {}).get("name", "Unknown")
 
-                        # Convert to chaos equivalent for proper comparison
-                        chaos_value = Plugin.convert_to_chaos(self, amount, currency) if amount else 0
-
                         all_listings.append({
                             "amount": amount,
                             "currency": currency,
-                            "chaosValue": chaos_value,  # Normalized price
                             "account": account,
                             "whisper": listing.get("whisper", ""),
                             "indexed": listing.get("indexed", ""),
@@ -1205,8 +1209,22 @@ class Plugin:
 
         decky.logger.info(f"Total fetched: {len(all_listings)} listings")
 
-        # Sort by chaos value for accurate price ordering
-        all_listings.sort(key=lambda x: x.get("chaosValue", 0))
+        # Count currencies
+        currency_counts = {}
+        for lst in all_listings:
+            curr = lst.get('currency', 'unknown')
+            currency_counts[curr] = currency_counts.get(curr, 0) + 1
+        decky.logger.info(f"Currency breakdown: {currency_counts}")
+
+        # Sort by amount (simple, no currency conversion)
+        all_listings.sort(key=lambda x: x.get("amount", 0) or 0)
+
+        # Store first 5 listings for debug
+        Plugin.last_debug_listings = all_listings[:5] if all_listings else []
+
+        # Log first 3 after sorting
+        for i, lst in enumerate(all_listings[:3]):
+            decky.logger.info(f"Listing {i+1}: {lst.get('amount')} {lst.get('currency')}")
 
         return {
             "success": True,

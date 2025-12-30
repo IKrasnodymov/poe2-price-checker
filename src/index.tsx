@@ -131,12 +131,33 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ onBack }) => {
 
   const loadDebugInfo = async () => {
     try {
-      const [logsResult, clipboardTest] = await Promise.all([
+      const [logsResult, clipboardTest, currencyRates, debugListings] = await Promise.all([
         call<[number], { success: boolean; logs: string; path: string }>("get_logs", 30),
         call<[], Record<string, unknown>>("test_clipboard"),
+        call<[], { success: boolean; rates: Record<string, number> }>("get_currency_rates"),
+        call<[], { success: boolean; listings: Array<{ amount: number; currency: string; account: string }> }>("get_debug_listings"),
       ]);
 
-      let info = "=== CLIPBOARD TEST ===\n";
+      let info = "=== CURRENCY RATES (from poe2scout) ===\n";
+      if (currencyRates?.rates) {
+        const rates = currencyRates.rates;
+        info += `  1 divine = ${rates["divine"]?.toFixed(2) || "?"} chaos\n`;
+        info += `  1 exalted = ${rates["exalted"]?.toFixed(3) || "?"} chaos\n`;
+        info += `  1 regal = ${rates["regal"]?.toFixed(2) || "?"} chaos\n`;
+      } else {
+        info += "  (not loaded)\n";
+      }
+
+      info += "\n=== LAST TRADE LISTINGS (first 3) ===\n";
+      if (debugListings?.listings && debugListings.listings.length > 0) {
+        debugListings.listings.slice(0, 3).forEach((listing, i) => {
+          info += `  ${i + 1}. ${listing.amount} ${listing.currency} (${listing.account})\n`;
+        });
+      } else {
+        info += "  (no listings yet - search for an item)\n";
+      }
+
+      info += "\n=== CLIPBOARD TEST ===\n";
       info += JSON.stringify(clipboardTest, null, 2);
       info += "\n\n=== RECENT LOGS ===\n";
       info += logsResult.logs || "No logs";
@@ -1273,6 +1294,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({ priceResult, item }) => {
       min: number;
       max: number;
       median: number;
+      average: number;
       count: number;
     }> = [];
 
@@ -1282,12 +1304,14 @@ const PriceDisplay: FC<PriceDisplayProps> = ({ priceResult, item }) => {
       const median = values.length % 2 !== 0
         ? values[mid]
         : (values[mid - 1] + values[mid]) / 2;
+      const average = values.reduce((sum, v) => sum + v, 0) / values.length;
 
       currencyStats.push({
         currency,
         min: values[0],
         max: values[values.length - 1],
         median,
+        average,
         count: values.length
       });
     });
@@ -1310,7 +1334,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({ priceResult, item }) => {
                     }
                   </div>
                   <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                    Median: {formatPrice(stats.median, stats.currency)} • {stats.count} listings
+                    Median: {formatPrice(stats.median, stats.currency)} • Avg: {formatPrice(stats.average, stats.currency)} • {stats.count} listings
                   </div>
                 </div>
               </PanelSectionRow>
@@ -1475,8 +1499,9 @@ const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
     const median = values.length % 2 !== 0
       ? values[mid]
       : (values[mid - 1] + values[mid]) / 2;
+    const average = values.reduce((sum, v) => sum + v, 0) / values.length;
 
-    return { min, max, median, currency: dominant, count: values.length };
+    return { min, max, median, average, currency: dominant, count: values.length };
   };
 
   // Get tier color based on tier number
@@ -1594,7 +1619,7 @@ const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, item }) => {
                       }
                     </div>
                     <div style={{ fontSize: 10, color: "#666" }}>
-                      {tier.total} listings
+                      Med: {formatPrice(stats.median, stats.currency)} • Avg: {formatPrice(stats.average, stats.currency)} • {tier.total} listings
                     </div>
                   </>
                 ) : (
@@ -1889,11 +1914,18 @@ const PriceCheckContent: FC = () => {
 
     // Also save to price history and scan history if we have results
     if (result.success && result.tiers.length > 0) {
-      const firstTierWithListings = result.tiers.find(t => t.listings && t.listings.length > 0);
-      if (firstTierWithListings && firstTierWithListings.listings.length > 0) {
+      // Find tier with MOST listings (not just first tier with any listings)
+      // This gives more accurate pricing based on more data points
+      const tierWithMostListings = result.tiers.reduce((best, tier) => {
+        const tierCount = tier.listings?.length || 0;
+        const bestCount = best?.listings?.length || 0;
+        return tierCount > bestCount ? tier : best;
+      }, result.tiers[0]);
+
+      if (tierWithMostListings && tierWithMostListings.listings && tierWithMostListings.listings.length > 0) {
         // Group by currency
         const byCurrency: Record<string, number[]> = {};
-        firstTierWithListings.listings.forEach((l) => {
+        tierWithMostListings.listings.forEach((l) => {
           if (l.amount != null && l.amount > 0 && l.currency) {
             const curr = l.currency.toLowerCase();
             if (!byCurrency[curr]) byCurrency[curr] = [];
@@ -1960,10 +1992,10 @@ const PriceCheckContent: FC = () => {
               max,
               median,
               dominantCurrency,
-              firstTierWithListings.tier <= 1 ? "trade" : "trade",
+              tierWithMostListings.tier <= 1 ? "trade" : "trade",
               iconUrl,
               result.stopped_at_tier,
-              firstTierWithListings.listings.length
+              tierWithMostListings.listings.length
             );
           } catch (e) {
             console.error("Failed to save scan record:", e);
