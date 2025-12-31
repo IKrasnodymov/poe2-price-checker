@@ -5,15 +5,285 @@ import asyncio
 import json
 import os
 import time
-from typing import Optional, Dict, Any, List
+import hashlib
+from typing import Optional, Dict, Any, List, Tuple
+from collections import OrderedDict
+from dataclasses import dataclass
 import urllib.request
 import urllib.error
 import urllib.parse
 import ssl
 
 
+@dataclass
+class RateLimitTier:
+    """Represents a single rate limit tier from X-Rate-Limit headers"""
+    max_requests: int      # e.g., 5
+    period_seconds: int    # e.g., 5
+    timeout_seconds: int   # e.g., 10
+
+
+@dataclass
+class RateLimitState:
+    """Represents current state of a rate limit tier"""
+    current_requests: int   # e.g., 2
+    period_seconds: int     # e.g., 5
+    timeout_remaining: int  # e.g., 0
+
+
+class AdaptiveRateLimiter:
+    """
+    Adaptive rate limiter that parses and respects X-Rate-Limit headers.
+
+    PoE API header format:
+    - X-Rate-Limit-Policy: trade-search-request-limit
+    - X-Rate-Limit-Rules: Ip,Account
+    - X-Rate-Limit-Ip: 5:5:10,10:10:30,15:10:300  (requests:period:timeout)
+    - X-Rate-Limit-Ip-State: 2:5:0,2:10:0,2:10:0
+    """
+
+    def __init__(self, policy_name: str, default_interval: float = 2.5):
+        self.policy_name = policy_name
+        self.default_interval = default_interval
+        self.last_request = 0.0
+
+        # Parsed rate limit state
+        self.rate_limits: Dict[str, List[RateLimitTier]] = {}  # rule -> tiers
+        self.rate_states: Dict[str, List[RateLimitState]] = {}  # rule -> states
+
+        # Dynamic interval based on current state
+        self.current_interval = default_interval
+
+        # Backoff state
+        self.consecutive_429s = 0
+        self.backoff_until = 0.0
+
+    def parse_headers(self, headers: Dict[str, str]) -> None:
+        """Parse X-Rate-Limit headers from API response"""
+        # Get rules list (e.g., "Ip,Account")
+        rules_header = headers.get('X-Rate-Limit-Rules', '')
+        if not rules_header:
+            return
+
+        rules = [r.strip() for r in rules_header.split(',') if r.strip()]
+
+        for rule in rules:
+            # Parse limit tiers: "5:5:10,10:10:30,15:10:300"
+            limit_header = headers.get(f'X-Rate-Limit-{rule}', '')
+            state_header = headers.get(f'X-Rate-Limit-{rule}-State', '')
+
+            if limit_header:
+                self.rate_limits[rule] = self._parse_limit_tiers(limit_header)
+            if state_header:
+                self.rate_states[rule] = self._parse_state_tiers(state_header)
+
+        # Update current interval based on state
+        self._update_interval()
+
+    def _parse_limit_tiers(self, header: str) -> List[RateLimitTier]:
+        """Parse '5:5:10,10:10:30,15:10:300' into list of tiers"""
+        tiers = []
+        for tier_str in header.split(','):
+            parts = tier_str.strip().split(':')
+            if len(parts) == 3:
+                try:
+                    tiers.append(RateLimitTier(
+                        max_requests=int(parts[0]),
+                        period_seconds=int(parts[1]),
+                        timeout_seconds=int(parts[2])
+                    ))
+                except ValueError:
+                    pass
+        return tiers
+
+    def _parse_state_tiers(self, header: str) -> List[RateLimitState]:
+        """Parse '2:5:0,2:10:0,2:10:0' into list of states"""
+        states = []
+        for state_str in header.split(','):
+            parts = state_str.strip().split(':')
+            if len(parts) == 3:
+                try:
+                    states.append(RateLimitState(
+                        current_requests=int(parts[0]),
+                        period_seconds=int(parts[1]),
+                        timeout_remaining=int(parts[2])
+                    ))
+                except ValueError:
+                    pass
+        return states
+
+    def _update_interval(self) -> None:
+        """Calculate optimal interval based on current state"""
+        if not self.rate_limits or not self.rate_states:
+            return
+
+        min_safe_interval = self.default_interval
+
+        for rule, limits in self.rate_limits.items():
+            states = self.rate_states.get(rule, [])
+
+            for i, limit in enumerate(limits):
+                if i >= len(states):
+                    continue
+
+                state = states[i]
+
+                # Check if we're in timeout
+                if state.timeout_remaining > 0:
+                    min_safe_interval = max(min_safe_interval, float(state.timeout_remaining))
+                    continue
+
+                # Calculate headroom
+                if limit.max_requests > 0:
+                    remaining_requests = limit.max_requests - state.current_requests
+                    usage_percent = state.current_requests / limit.max_requests
+
+                    # Adaptive slowdown based on usage
+                    if usage_percent > 0.8:  # >80% used - slow down significantly
+                        if remaining_requests > 0:
+                            safe_interval = limit.period_seconds / remaining_requests
+                            min_safe_interval = max(min_safe_interval, safe_interval * 1.5)
+                    elif usage_percent > 0.5:  # >50% used - slight slowdown
+                        if remaining_requests > 0:
+                            safe_interval = limit.period_seconds / remaining_requests
+                            min_safe_interval = max(min_safe_interval, safe_interval)
+
+        self.current_interval = min_safe_interval
+
+    async def wait(self) -> None:
+        """Wait appropriate time before next request"""
+        now = time.time()
+
+        # Check backoff from 429
+        if now < self.backoff_until:
+            wait_time = self.backoff_until - now
+            await asyncio.sleep(wait_time)
+            now = time.time()
+
+        # Standard rate limiting
+        elapsed = now - self.last_request
+        if elapsed < self.current_interval:
+            await asyncio.sleep(self.current_interval - elapsed)
+
+        self.last_request = time.time()
+
+    def handle_429(self, retry_after: Optional[int] = None) -> float:
+        """Handle 429 response with exponential backoff. Returns wait time."""
+        self.consecutive_429s += 1
+
+        if retry_after and retry_after > 0:
+            wait_time = float(retry_after)
+        else:
+            # Exponential backoff: 5, 10, 20, 40... capped at 120 seconds
+            wait_time = min(5.0 * (2 ** (self.consecutive_429s - 1)), 120.0)
+
+        self.backoff_until = time.time() + wait_time
+        # Also increase interval for future requests
+        self.current_interval = max(self.current_interval * 1.5, 5.0)
+
+        return wait_time
+
+    def handle_success(self) -> None:
+        """Reset backoff state on successful request"""
+        if self.consecutive_429s > 0:
+            self.consecutive_429s = 0
+            # Gradually decrease interval back to default
+            self.current_interval = max(self.current_interval * 0.9, self.default_interval)
+
+
+@dataclass
+class CachedSearchResult:
+    """Cached search result with timestamp"""
+    timestamp: float
+    result: Dict[str, Any]
+
+
+class SearchResultCache:
+    """
+    Cache for Trade API search results to avoid redundant queries.
+
+    Caches by: item base type + rarity + modifier hash
+    - Time-based expiration (5 minutes default)
+    - LRU eviction (max 100 entries for Steam Deck memory)
+    """
+
+    def __init__(self, max_entries: int = 100, ttl_seconds: int = 300):
+        self.max_entries = max_entries
+        self.ttl_seconds = ttl_seconds
+        self.cache: OrderedDict[str, CachedSearchResult] = OrderedDict()
+
+    def _make_key(
+        self,
+        item_name: Optional[str],
+        base_type: Optional[str],
+        rarity: str,
+        modifiers: List[Dict]
+    ) -> str:
+        """Create cache key from search parameters"""
+        # Sort modifiers for consistent hashing
+        mod_ids = sorted([str(m.get('id', '')) for m in modifiers if m.get('enabled', True)])
+        mod_hash = hashlib.md5(','.join(mod_ids).encode()).hexdigest()[:8]
+
+        key_parts = [
+            rarity or '',
+            item_name or '',
+            base_type or '',
+            mod_hash
+        ]
+        return '|'.join(key_parts).lower()
+
+    def get(
+        self,
+        item_name: Optional[str],
+        base_type: Optional[str],
+        rarity: str,
+        modifiers: List[Dict]
+    ) -> Optional[CachedSearchResult]:
+        """Get cached result if valid"""
+        key = self._make_key(item_name, base_type, rarity, modifiers)
+
+        if key not in self.cache:
+            return None
+
+        entry = self.cache[key]
+
+        # Check TTL
+        if time.time() - entry.timestamp > self.ttl_seconds:
+            del self.cache[key]
+            return None
+
+        # Move to end (LRU)
+        self.cache.move_to_end(key)
+        return entry
+
+    def put(
+        self,
+        item_name: Optional[str],
+        base_type: Optional[str],
+        rarity: str,
+        modifiers: List[Dict],
+        result: Dict[str, Any]
+    ) -> None:
+        """Cache a search result"""
+        key = self._make_key(item_name, base_type, rarity, modifiers)
+
+        # Evict oldest if at capacity
+        while len(self.cache) >= self.max_entries:
+            self.cache.popitem(last=False)
+
+        self.cache[key] = CachedSearchResult(
+            timestamp=time.time(),
+            result=result
+        )
+
+    def clear(self) -> None:
+        """Clear all cached entries"""
+        self.cache.clear()
+
+
+# Keep simple RateLimiter for backward compatibility
 class RateLimiter:
-    """Simple rate limiter for API requests"""
+    """Simple rate limiter for API requests (legacy)"""
 
     def __init__(self, min_interval: float = 1.0):
         self.min_interval = min_interval
@@ -33,8 +303,15 @@ class Plugin:
     # Class-level attributes (workaround for Decky bug #509)
     # Decky doesn't properly instantiate Plugin class, so we use class attributes
     settings: Dict[str, Any] = None  # type: ignore
-    trade_limiter: RateLimiter = None  # type: ignore
-    poe2scout_limiter: RateLimiter = None  # type: ignore
+
+    # Adaptive rate limiters for Trade API (separate for search/fetch)
+    search_limiter: AdaptiveRateLimiter = None  # type: ignore
+    fetch_limiter: AdaptiveRateLimiter = None  # type: ignore
+    poe2scout_limiter: RateLimiter = None  # type: ignore  # poe2scout uses simple limiter
+
+    # Search result cache to avoid redundant API calls
+    search_cache: SearchResultCache = None  # type: ignore
+
     ssl_context = None
     stat_cache: Dict[str, str] = None  # type: ignore  # text pattern -> stat ID
     currency_rates: Dict[str, float] = None  # type: ignore  # currency -> chaos value
@@ -65,9 +342,29 @@ class Plugin:
             "useTradeApi": True,
             "usePoe2Scout": True,
             "poesessid": "",
+            # Rate limiting settings
+            "search_min_interval": 3.0,  # Conservative default for search
+            "fetch_min_interval": 1.0,   # Fetch can be faster
+            "max_retries": 2,            # Max retries on 429
+            "cache_ttl_seconds": 300,    # 5 minutes cache TTL
         }
-        Plugin.trade_limiter = RateLimiter(min_interval=2.5)  # 2.5s between requests to avoid 429
+
+        # Adaptive rate limiters (separate for search/fetch - they have different API limits)
+        Plugin.search_limiter = AdaptiveRateLimiter(
+            policy_name='trade-search',
+            default_interval=Plugin.settings["search_min_interval"]
+        )
+        Plugin.fetch_limiter = AdaptiveRateLimiter(
+            policy_name='trade-fetch',
+            default_interval=Plugin.settings["fetch_min_interval"]
+        )
         Plugin.poe2scout_limiter = RateLimiter(min_interval=1.0)  # 1s between poe2scout requests
+
+        # Search result cache to reduce redundant API calls
+        Plugin.search_cache = SearchResultCache(
+            max_entries=100,
+            ttl_seconds=Plugin.settings["cache_ttl_seconds"]
+        )
         Plugin.stat_cache = {}
         Plugin.currency_rates = {
             # Default rates (will be updated from poe2scout)
@@ -1022,7 +1319,7 @@ class Plugin:
 
     async def search_trade_api(self, query: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Search the official PoE2 Trade API
+        Search the official PoE2 Trade API with adaptive rate limiting.
 
         query: Trade API search query object
         """
@@ -1030,7 +1327,8 @@ class Plugin:
         if not self.settings.get("useTradeApi", True):
             return {"success": False, "error": "Trade API disabled in settings"}
 
-        await self.trade_limiter.wait()
+        # Use adaptive search limiter
+        await self.search_limiter.wait()
 
         league = self.settings.get("league", "Standard")
         league_encoded = urllib.parse.quote(league, safe='')
@@ -1059,6 +1357,11 @@ class Plugin:
                 req.add_header("Cookie", f"POESESSID={poesessid}")
 
             with urllib.request.urlopen(req, timeout=15, context=self.ssl_context) as response:
+                # Parse rate limit headers for adaptive limiting
+                headers = {k: v for k, v in response.headers.items()}
+                self.search_limiter.parse_headers(headers)
+                self.search_limiter.handle_success()
+
                 result = json.loads(response.read().decode())
 
                 total = result.get("total", 0)
@@ -1083,9 +1386,18 @@ class Plugin:
             decky.logger.error(f"Trade API HTTP error: {e.code} - {error_body}")
 
             if e.code == 429:
+                # Parse Retry-After header and handle with adaptive limiter
+                retry_after = None
+                try:
+                    retry_after = int(e.headers.get('Retry-After', 0))
+                except (ValueError, TypeError):
+                    pass
+                wait_time = self.search_limiter.handle_429(retry_after)
+                decky.logger.warning(f"Rate limited (429). Backing off for {wait_time:.1f}s")
                 return {
                     "success": False,
-                    "error": "Rate limited. Please wait a moment and try again."
+                    "error": f"Rate limited. Waiting {wait_time:.0f}s before retry.",
+                    "retry_after": wait_time
                 }
 
             if e.code == 400:
@@ -1123,7 +1435,7 @@ class Plugin:
         limit: Optional[int] = None
     ) -> Dict[str, Any]:
         """
-        Fetch detailed listings from Trade API in batches
+        Fetch detailed listings from Trade API in batches with adaptive rate limiting.
 
         result_ids: List of item IDs from search
         query_id: Query ID from search response
@@ -1152,7 +1464,8 @@ class Plugin:
             if not batch_ids:
                 break
 
-            await self.trade_limiter.wait()
+            # Use adaptive fetch limiter
+            await self.fetch_limiter.wait()
 
             ids_param = ",".join(batch_ids)
             url = f"https://www.pathofexile.com/api/trade2/fetch/{ids_param}?query={query_id}"
@@ -1174,6 +1487,11 @@ class Plugin:
                     req.add_header("Cookie", f"POESESSID={poesessid}")
 
                 with urllib.request.urlopen(req, timeout=15, context=self.ssl_context) as response:
+                    # Parse rate limit headers for adaptive limiting
+                    headers = {k: v for k, v in response.headers.items()}
+                    self.fetch_limiter.parse_headers(headers)
+                    self.fetch_limiter.handle_success()
+
                     result = json.loads(response.read().decode())
 
                     for item in result.get("result", []):
@@ -1200,9 +1518,43 @@ class Plugin:
                         })
 
             except urllib.error.HTTPError as e:
-                decky.logger.error(f"Trade API fetch error (batch {batch_num}): {e}")
-                # Continue with other batches if one fails
-                continue
+                decky.logger.error(f"Trade API fetch error (batch {batch_num}): {e.code}")
+                if e.code == 429:
+                    # Handle rate limit with adaptive backoff
+                    retry_after = None
+                    try:
+                        retry_after = int(e.headers.get('Retry-After', 0))
+                    except (ValueError, TypeError):
+                        pass
+                    wait_time = self.fetch_limiter.handle_429(retry_after)
+                    decky.logger.warning(f"Fetch rate limited (429). Backing off for {wait_time:.1f}s")
+                    # Wait and retry this batch once
+                    await asyncio.sleep(wait_time)
+                    # Retry this batch
+                    try:
+                        await self.fetch_limiter.wait()
+                        with urllib.request.urlopen(req, timeout=15, context=self.ssl_context) as response:
+                            result = json.loads(response.read().decode())
+                            for item in result.get("result", []):
+                                if not item:
+                                    continue
+                                if first_item_icon is None:
+                                    first_item_icon = item.get("item", {}).get("icon")
+                                listing = item.get("listing", {})
+                                price = listing.get("price", {})
+                                all_listings.append({
+                                    "amount": price.get("amount"),
+                                    "currency": price.get("currency"),
+                                    "account": listing.get("account", {}).get("name", "Unknown"),
+                                    "whisper": listing.get("whisper", ""),
+                                    "indexed": listing.get("indexed", ""),
+                                })
+                            self.fetch_limiter.handle_success()
+                    except Exception as retry_e:
+                        decky.logger.error(f"Retry failed: {retry_e}")
+                else:
+                    # Continue with other batches if one fails
+                    continue
             except Exception as e:
                 decky.logger.error(f"Trade API fetch error (batch {batch_num}): {e}")
                 continue
@@ -1435,15 +1787,19 @@ class Plugin:
         item_level: Optional[int] = None
     ) -> Dict[str, Any]:
         """
-        Progressive tiered search with smart early stopping.
+        Progressive tiered search with smart early stopping, caching, and retry logic.
 
         Searches through tiers:
-        - Tier 1: Exact match (all mods, 80% values)
+        - Tier 0: Exact match (all mods, 100% values)
+        - Tier 1: Similar (all mods, 80% values)
         - Tier 2: Core mods (top 3 mods, 50% values)
         - Tier 3: Base only (just base type + ilvl)
 
-        Stops early if enough results found.
-        Also fetches poe2scout price for uniques and currency.
+        Features:
+        - Caches results to avoid redundant API calls
+        - Retries on 429 rate limit errors
+        - Stops early if enough results found
+        - Uses poe2scout for uniques/currency
         """
         import decky
         decky.logger.info(f"Progressive search: {item_name or base_type}, {len(modifiers)} mods")
@@ -1455,8 +1811,20 @@ class Plugin:
             "trade_icon": None,  # Icon from Trade API
             "stopped_at_tier": 0,
             "total_searches": 0,
+            "from_cache": False,
             "error": None
         }
+
+        # Check cache first
+        cached = self.search_cache.get(item_name, base_type, rarity, modifiers)
+        if cached:
+            decky.logger.info("Using cached search result")
+            result["tiers"] = cached.result.get("tiers", [])
+            result["trade_icon"] = cached.result.get("trade_icon")
+            result["poe2scout_price"] = cached.result.get("poe2scout_price")
+            result["stopped_at_tier"] = cached.result.get("stopped_at_tier", 0)
+            result["from_cache"] = True
+            return result
 
         # Tier names and descriptions
         tier_info = {
@@ -1466,11 +1834,14 @@ class Plugin:
             3: {"name": "Base Only", "description": f"{base_type or 'Any'} ilvl {item_level or 'any'}+"}
         }
 
-        # Fetch limits per tier (for speed optimization)
-        fetch_limits = {0: 10, 1: 10, 2: 15, 3: 20}
+        # Fetch limits per tier (reduced for speed optimization)
+        fetch_limits = {0: 10, 1: 10, 2: 10, 3: 15}
 
         # Early stop threshold
         early_stop_count = 5
+
+        # Max retries for rate limiting
+        max_retries = self.settings.get("max_retries", 2)
 
         # For uniques and currency, get quick price from poe2scout (on-demand)
         decky.logger.info(f"poe2scout check: rarity={rarity}, item_name={item_name}")
@@ -1481,6 +1852,14 @@ class Plugin:
                 if scout_result.get("success"):
                     result["poe2scout_price"] = scout_result
                     decky.logger.info(f"poe2scout price: {scout_result.get('price', {}).get('exalted')} exalted")
+
+                    # For uniques with high-confidence poe2scout data, skip Trade API
+                    listings_count = scout_result.get("listings", 0)
+                    if rarity == "Unique" and listings_count >= 10:
+                        decky.logger.info(f"Using poe2scout only for unique (high confidence: {listings_count} listings)")
+                        # Cache this result
+                        self.search_cache.put(item_name, base_type, rarity, modifiers, result)
+                        return result
                 else:
                     decky.logger.info(f"poe2scout no result: {scout_result.get('error')}")
             except Exception as e:
@@ -1512,12 +1891,29 @@ class Plugin:
                     decky.logger.info(f"Skipping tier 3 for magic items: base type contains affixes")
                     continue
 
-                # Search
-                search_result = await Plugin.search_trade_api(self, query)
-                result["total_searches"] += 1
+                # Search with retry logic
+                search_result = None
+                for attempt in range(max_retries + 1):
+                    search_result = await Plugin.search_trade_api(self, query)
+                    result["total_searches"] += 1
 
-                if not search_result.get("success"):
-                    decky.logger.warning(f"Tier {tier} search failed: {search_result.get('error')}")
+                    if search_result.get("success"):
+                        break
+
+                    # Check if rate limited
+                    if "rate limit" in search_result.get("error", "").lower():
+                        retry_after = search_result.get("retry_after", 5)
+                        if attempt < max_retries:
+                            decky.logger.info(f"Tier {tier} rate limited, retry {attempt + 1}/{max_retries} after {retry_after:.0f}s")
+                            await asyncio.sleep(retry_after)
+                        else:
+                            decky.logger.warning(f"Tier {tier} exhausted retries, moving to next tier")
+                    else:
+                        # Non-retriable error
+                        break
+
+                if not search_result or not search_result.get("success"):
+                    decky.logger.warning(f"Tier {tier} search failed: {search_result.get('error') if search_result else 'No result'}")
                     continue
 
                 tier_total = search_result.get("total", 0)
@@ -1568,6 +1964,10 @@ class Plugin:
         # If no tiers found anything
         if not result["tiers"]:
             result["error"] = "No listings found in any tier"
+
+        # Cache the result (even if empty, to avoid repeated failed searches)
+        if result["tiers"] or result["poe2scout_price"]:
+            self.search_cache.put(item_name, base_type, rarity, modifiers, result)
 
         decky.logger.info(f"Progressive search complete: {len(result['tiers'])} tiers, {result['total_searches']} searches")
         return result
