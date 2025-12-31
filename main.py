@@ -4,281 +4,22 @@
 import asyncio
 import json
 import os
+import sys
 import time
-import hashlib
 from typing import Optional, Dict, Any, List, Tuple
-from collections import OrderedDict
-from dataclasses import dataclass
 import urllib.request
 import urllib.error
 import urllib.parse
 import ssl
 
+# Add plugin directory to path for backend module imports
+# This is needed because Decky sandboxes the plugin
+_plugin_dir = os.path.dirname(os.path.abspath(__file__))
+if _plugin_dir not in sys.path:
+    sys.path.insert(0, _plugin_dir)
 
-@dataclass
-class RateLimitTier:
-    """Represents a single rate limit tier from X-Rate-Limit headers"""
-    max_requests: int      # e.g., 5
-    period_seconds: int    # e.g., 5
-    timeout_seconds: int   # e.g., 10
-
-
-@dataclass
-class RateLimitState:
-    """Represents current state of a rate limit tier"""
-    current_requests: int   # e.g., 2
-    period_seconds: int     # e.g., 5
-    timeout_remaining: int  # e.g., 0
-
-
-class AdaptiveRateLimiter:
-    """
-    Adaptive rate limiter that parses and respects X-Rate-Limit headers.
-
-    PoE API header format:
-    - X-Rate-Limit-Policy: trade-search-request-limit
-    - X-Rate-Limit-Rules: Ip,Account
-    - X-Rate-Limit-Ip: 5:5:10,10:10:30,15:10:300  (requests:period:timeout)
-    - X-Rate-Limit-Ip-State: 2:5:0,2:10:0,2:10:0
-    """
-
-    def __init__(self, policy_name: str, default_interval: float = 2.5):
-        self.policy_name = policy_name
-        self.default_interval = default_interval
-        self.last_request = 0.0
-
-        # Parsed rate limit state
-        self.rate_limits: Dict[str, List[RateLimitTier]] = {}  # rule -> tiers
-        self.rate_states: Dict[str, List[RateLimitState]] = {}  # rule -> states
-
-        # Dynamic interval based on current state
-        self.current_interval = default_interval
-
-        # Backoff state
-        self.consecutive_429s = 0
-        self.backoff_until = 0.0
-
-    def parse_headers(self, headers: Dict[str, str]) -> None:
-        """Parse X-Rate-Limit headers from API response"""
-        # Get rules list (e.g., "Ip,Account")
-        rules_header = headers.get('X-Rate-Limit-Rules', '')
-        if not rules_header:
-            return
-
-        rules = [r.strip() for r in rules_header.split(',') if r.strip()]
-
-        for rule in rules:
-            # Parse limit tiers: "5:5:10,10:10:30,15:10:300"
-            limit_header = headers.get(f'X-Rate-Limit-{rule}', '')
-            state_header = headers.get(f'X-Rate-Limit-{rule}-State', '')
-
-            if limit_header:
-                self.rate_limits[rule] = self._parse_limit_tiers(limit_header)
-            if state_header:
-                self.rate_states[rule] = self._parse_state_tiers(state_header)
-
-        # Update current interval based on state
-        self._update_interval()
-
-    def _parse_limit_tiers(self, header: str) -> List[RateLimitTier]:
-        """Parse '5:5:10,10:10:30,15:10:300' into list of tiers"""
-        tiers = []
-        for tier_str in header.split(','):
-            parts = tier_str.strip().split(':')
-            if len(parts) == 3:
-                try:
-                    tiers.append(RateLimitTier(
-                        max_requests=int(parts[0]),
-                        period_seconds=int(parts[1]),
-                        timeout_seconds=int(parts[2])
-                    ))
-                except ValueError:
-                    pass
-        return tiers
-
-    def _parse_state_tiers(self, header: str) -> List[RateLimitState]:
-        """Parse '2:5:0,2:10:0,2:10:0' into list of states"""
-        states = []
-        for state_str in header.split(','):
-            parts = state_str.strip().split(':')
-            if len(parts) == 3:
-                try:
-                    states.append(RateLimitState(
-                        current_requests=int(parts[0]),
-                        period_seconds=int(parts[1]),
-                        timeout_remaining=int(parts[2])
-                    ))
-                except ValueError:
-                    pass
-        return states
-
-    def _update_interval(self) -> None:
-        """Calculate optimal interval based on current state"""
-        if not self.rate_limits or not self.rate_states:
-            return
-
-        min_safe_interval = self.default_interval
-
-        for rule, limits in self.rate_limits.items():
-            states = self.rate_states.get(rule, [])
-
-            for i, limit in enumerate(limits):
-                if i >= len(states):
-                    continue
-
-                state = states[i]
-
-                # Check if we're in timeout
-                if state.timeout_remaining > 0:
-                    min_safe_interval = max(min_safe_interval, float(state.timeout_remaining))
-                    continue
-
-                # Calculate headroom
-                if limit.max_requests > 0:
-                    remaining_requests = limit.max_requests - state.current_requests
-                    usage_percent = state.current_requests / limit.max_requests
-
-                    # Adaptive slowdown based on usage
-                    if usage_percent > 0.8:  # >80% used - slow down significantly
-                        if remaining_requests > 0:
-                            safe_interval = limit.period_seconds / remaining_requests
-                            min_safe_interval = max(min_safe_interval, safe_interval * 1.5)
-                    elif usage_percent > 0.5:  # >50% used - slight slowdown
-                        if remaining_requests > 0:
-                            safe_interval = limit.period_seconds / remaining_requests
-                            min_safe_interval = max(min_safe_interval, safe_interval)
-
-        self.current_interval = min_safe_interval
-
-    async def wait(self) -> None:
-        """Wait appropriate time before next request"""
-        now = time.time()
-
-        # Check backoff from 429
-        if now < self.backoff_until:
-            wait_time = self.backoff_until - now
-            await asyncio.sleep(wait_time)
-            now = time.time()
-
-        # Standard rate limiting
-        elapsed = now - self.last_request
-        if elapsed < self.current_interval:
-            await asyncio.sleep(self.current_interval - elapsed)
-
-        self.last_request = time.time()
-
-    def handle_429(self, retry_after: Optional[int] = None) -> float:
-        """Handle 429 response with exponential backoff. Returns wait time."""
-        self.consecutive_429s += 1
-
-        if retry_after and retry_after > 0:
-            wait_time = float(retry_after)
-        else:
-            # Exponential backoff: 5, 10, 20, 40... capped at 120 seconds
-            wait_time = min(5.0 * (2 ** (self.consecutive_429s - 1)), 120.0)
-
-        self.backoff_until = time.time() + wait_time
-        # Also increase interval for future requests
-        self.current_interval = max(self.current_interval * 1.5, 5.0)
-
-        return wait_time
-
-    def handle_success(self) -> None:
-        """Reset backoff state on successful request"""
-        if self.consecutive_429s > 0:
-            self.consecutive_429s = 0
-            # Gradually decrease interval back to default
-            self.current_interval = max(self.current_interval * 0.9, self.default_interval)
-
-
-@dataclass
-class CachedSearchResult:
-    """Cached search result with timestamp"""
-    timestamp: float
-    result: Dict[str, Any]
-
-
-class SearchResultCache:
-    """
-    Cache for Trade API search results to avoid redundant queries.
-
-    Caches by: item base type + rarity + modifier hash
-    - Time-based expiration (5 minutes default)
-    - LRU eviction (max 100 entries for Steam Deck memory)
-    """
-
-    def __init__(self, max_entries: int = 100, ttl_seconds: int = 300):
-        self.max_entries = max_entries
-        self.ttl_seconds = ttl_seconds
-        self.cache: OrderedDict[str, CachedSearchResult] = OrderedDict()
-
-    def _make_key(
-        self,
-        item_name: Optional[str],
-        base_type: Optional[str],
-        rarity: str,
-        modifiers: List[Dict]
-    ) -> str:
-        """Create cache key from search parameters"""
-        # Sort modifiers for consistent hashing
-        mod_ids = sorted([str(m.get('id', '')) for m in modifiers if m.get('enabled', True)])
-        mod_hash = hashlib.md5(','.join(mod_ids).encode()).hexdigest()[:8]
-
-        key_parts = [
-            rarity or '',
-            item_name or '',
-            base_type or '',
-            mod_hash
-        ]
-        return '|'.join(key_parts).lower()
-
-    def get(
-        self,
-        item_name: Optional[str],
-        base_type: Optional[str],
-        rarity: str,
-        modifiers: List[Dict]
-    ) -> Optional[CachedSearchResult]:
-        """Get cached result if valid"""
-        key = self._make_key(item_name, base_type, rarity, modifiers)
-
-        if key not in self.cache:
-            return None
-
-        entry = self.cache[key]
-
-        # Check TTL
-        if time.time() - entry.timestamp > self.ttl_seconds:
-            del self.cache[key]
-            return None
-
-        # Move to end (LRU)
-        self.cache.move_to_end(key)
-        return entry
-
-    def put(
-        self,
-        item_name: Optional[str],
-        base_type: Optional[str],
-        rarity: str,
-        modifiers: List[Dict],
-        result: Dict[str, Any]
-    ) -> None:
-        """Cache a search result"""
-        key = self._make_key(item_name, base_type, rarity, modifiers)
-
-        # Evict oldest if at capacity
-        while len(self.cache) >= self.max_entries:
-            self.cache.popitem(last=False)
-
-        self.cache[key] = CachedSearchResult(
-            timestamp=time.time(),
-            result=result
-        )
-
-    def clear(self) -> None:
-        """Clear all cached entries"""
-        self.cache.clear()
+# Import from backend modules (these can be at module level since they don't use decky)
+from backend import AdaptiveRateLimiter, SearchResultCache
 
 
 # Keep simple RateLimiter for backward compatibility
@@ -439,10 +180,20 @@ class Plugin:
         decky.logger.info("PoE2 Price Checker unloading...")
         # Save settings inline
         try:
+            if Plugin.settings is None:
+                decky.logger.warning("Settings not initialized, skipping save")
+                return
+
             settings_path = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
             os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+
+            # SECURITY: Exclude empty poesessid from saved file
+            settings_to_save = dict(self.settings)
+            if not settings_to_save.get("poesessid"):
+                settings_to_save.pop("poesessid", None)
+
             with open(settings_path, "w") as f:
-                json.dump(self.settings, f, indent=2)
+                json.dump(settings_to_save, f, indent=2)
             decky.logger.info("Settings saved successfully")
         except Exception as e:
             decky.logger.error(f"Failed to save settings: {e}")
@@ -1351,10 +1102,13 @@ class Plugin:
                 method="POST"
             )
 
-            # Add POESESSID if configured
+            # Add POESESSID if configured (SECURITY NOTE: Cookie stored in settings.json)
+            # Warning: POESESSID grants account access - handle with care
             poesessid = self.settings.get("poesessid", "")
             if poesessid:
                 req.add_header("Cookie", f"POESESSID={poesessid}")
+                # Don't log the actual session ID for security
+                decky.logger.debug("Using POESESSID for authenticated request")
 
             with urllib.request.urlopen(req, timeout=15, context=self.ssl_context) as response:
                 # Parse rate limit headers for adaptive limiting
@@ -1414,8 +1168,8 @@ class Plugin:
                         "success": False,
                         "error": f"Trade API: {error_msg}"
                     }
-                except:
-                    pass
+                except (json.JSONDecodeError, KeyError, ValueError):
+                    pass  # Error response format not parseable
 
             return {
                 "success": False,
@@ -1483,6 +1237,7 @@ class Plugin:
                     }
                 )
 
+                # SECURITY: Don't log POESESSID - grants account access
                 if poesessid:
                     req.add_header("Cookie", f"POESESSID={poesessid}")
 
@@ -1989,18 +1744,79 @@ class Plugin:
         return self.settings
 
     async def update_settings(self, new_settings: Dict[str, Any]) -> Dict[str, Any]:
-        """Update and save settings"""
+        """Update and save settings with validation"""
         import decky
-        self.settings.update(new_settings)
-        # Save settings inline
-        try:
-            settings_path = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
-            os.makedirs(os.path.dirname(settings_path), exist_ok=True)
-            with open(settings_path, "w") as f:
-                json.dump(self.settings, f, indent=2)
-        except Exception as e:
-            decky.logger.error(f"Failed to save settings: {e}")
-        return {"success": True, "settings": self.settings}
+
+        # Settings schema with types and constraints
+        SETTINGS_SCHEMA = {
+            "league": {"type": str, "required": False},
+            "useTradeApi": {"type": bool, "required": False},
+            "usePoe2Scout": {"type": bool, "required": False},
+            "autoCheckOnOpen": {"type": bool, "required": False},
+            "poesessid": {"type": str, "required": False, "max_length": 64},
+            "search_min_interval": {"type": (int, float), "required": False, "min": 0.5, "max": 60.0},
+            "fetch_min_interval": {"type": (int, float), "required": False, "min": 0.1, "max": 60.0},
+            "max_retries": {"type": int, "required": False, "min": 0, "max": 10},
+            "cache_ttl_seconds": {"type": int, "required": False, "min": 60, "max": 3600},
+        }
+
+        # Validate each setting
+        validated = {}
+        errors = []
+        for key, value in new_settings.items():
+            if key not in SETTINGS_SCHEMA:
+                decky.logger.warning(f"Unknown setting key: {key}")
+                continue
+
+            schema = SETTINGS_SCHEMA[key]
+            expected_type = schema["type"]
+
+            # Type check
+            if not isinstance(value, expected_type):
+                errors.append(f"Invalid type for {key}: expected {expected_type}, got {type(value)}")
+                continue
+
+            # String length check
+            if isinstance(value, str) and "max_length" in schema:
+                if len(value) > schema["max_length"]:
+                    errors.append(f"{key} exceeds max length of {schema['max_length']}")
+                    continue
+
+            # Numeric range check
+            if isinstance(value, (int, float)):
+                if "min" in schema and value < schema["min"]:
+                    errors.append(f"{key} must be >= {schema['min']}")
+                    continue
+                if "max" in schema and value > schema["max"]:
+                    errors.append(f"{key} must be <= {schema['max']}")
+                    continue
+
+            validated[key] = value
+
+        if errors:
+            decky.logger.warning(f"Settings validation errors: {errors}")
+
+        # Apply validated settings
+        if validated:
+            self.settings.update(validated)
+            # Save settings inline
+            try:
+                settings_path = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
+                os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+
+                # SECURITY: Create a copy for saving that excludes empty poesessid
+                # to avoid creating the field in settings.json unnecessarily
+                settings_to_save = dict(self.settings)
+                if not settings_to_save.get("poesessid"):
+                    settings_to_save.pop("poesessid", None)
+
+                with open(settings_path, "w") as f:
+                    json.dump(settings_to_save, f, indent=2)
+            except Exception as e:
+                decky.logger.error(f"Failed to save settings: {e}")
+                return {"success": False, "error": f"Failed to save: {e}"}
+
+        return {"success": True, "settings": self.settings, "validation_errors": errors if errors else None}
 
     async def get_available_leagues(self) -> Dict[str, Any]:
         """Fetch available leagues from Trade API"""

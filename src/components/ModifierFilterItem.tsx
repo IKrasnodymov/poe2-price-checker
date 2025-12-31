@@ -1,0 +1,104 @@
+// src/components/ModifierFilterItem.tsx
+// Compact modifier filter row component
+
+import { FC } from "react";
+import { ItemModifier } from "../lib/types";
+import { MOD_TYPE_COLORS } from "../styles/constants";
+
+interface ModifierFilterProps {
+  modifier: ItemModifier;
+  index: number;
+  onToggle: (index: number) => void;
+}
+
+export const ModifierFilterItem: FC<ModifierFilterProps> = ({
+  modifier,
+  index,
+  onToggle,
+}) => {
+  const typeColor = MOD_TYPE_COLORS[modifier.type] || MOD_TYPE_COLORS.explicit;
+
+  // Split text to highlight numeric values
+  const parts = modifier.text.split(/(\+?-?\d+(?:\.\d+)?%?)/g);
+
+  return (
+    <div
+      onClick={() => onToggle(index)}
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 8,
+        padding: "6px 10px",
+        cursor: "pointer",
+        background: modifier.enabled ? typeColor.bg : "transparent",
+        borderLeft: `2px solid ${modifier.enabled ? typeColor.border : "transparent"}`,
+        transition: "all 0.15s ease",
+      }}
+    >
+      {/* Toggle checkbox */}
+      <input
+        type="checkbox"
+        checked={modifier.enabled}
+        onChange={(e) => {
+          e.stopPropagation();
+          onToggle(index);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          marginTop: 2,
+          width: 16,
+          height: 16,
+          accentColor: "#ffd700",
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Modifier content */}
+      <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+        {/* Modifier text with highlighted values */}
+        <span style={{
+          fontSize: 11,
+          color: modifier.enabled ? "#ddd" : "#666",
+          wordBreak: "break-word",
+          lineHeight: 1.4,
+        }}>
+          {parts.map((part, i) =>
+            /\+?-?\d+(?:\.\d+)?%?/.test(part) ? (
+              <span key={i} style={{ color: modifier.enabled ? "#ffd700" : "#997a00", fontWeight: "bold" }}>
+                {part}
+              </span>
+            ) : (
+              <span key={i}>{part}</span>
+            )
+          )}
+        </span>
+      </div>
+
+      {/* Type badge + Tier on the right */}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+        {modifier.tier && (
+          <span style={{
+            fontSize: 9,
+            color: "#666",
+          }}>
+            T{modifier.tier}
+          </span>
+        )}
+        <span style={{
+          fontSize: 8,
+          padding: "2px 4px",
+          borderRadius: 3,
+          backgroundColor: typeColor.bg,
+          color: typeColor.text,
+          textTransform: "uppercase",
+          fontWeight: "bold",
+        }}>
+          {modifier.type.substring(0, 3)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default ModifierFilterItem;
