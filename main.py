@@ -1743,6 +1743,28 @@ class Plugin:
         decky.logger.info("get_settings called")
         return self.settings
 
+    async def get_modifier_tier_data(self) -> Dict[str, Any]:
+        """Load and return modifier tier data from JSON file"""
+        import decky
+        import json
+
+        try:
+            tier_data_path = os.path.join(os.path.dirname(__file__), "data", "modifier_tiers.json")
+
+            if not os.path.exists(tier_data_path):
+                decky.logger.warning(f"Tier data file not found: {tier_data_path}")
+                return {"success": False, "error": "Tier data file not found"}
+
+            with open(tier_data_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            decky.logger.info(f"Loaded tier data: {len(data.get('modifiers', []))} modifiers")
+            return {"success": True, "data": data}
+
+        except Exception as e:
+            decky.logger.error(f"Error loading tier data: {e}")
+            return {"success": False, "error": str(e)}
+
     async def update_settings(self, new_settings: Dict[str, Any]) -> Dict[str, Any]:
         """Update and save settings with validation"""
         import decky

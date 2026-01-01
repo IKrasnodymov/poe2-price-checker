@@ -1,0 +1,6765 @@
+{
+  "modifiers": [
+    {
+      "id": "explicit.strength",
+      "name": "Strength",
+      "textPattern": "# to Strength",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Helmet (Str)",
+        "Gloves (Str)",
+        "Boots (Str)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Crossbow",
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Titan",
+          "ilvl": 74,
+          "min": 31.0,
+          "max": 33.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Leviathan",
+          "ilvl": 66,
+          "min": 28.0,
+          "max": 30.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Goliath",
+          "ilvl": 55,
+          "min": 25.0,
+          "max": 27.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Gorilla",
+          "ilvl": 44,
+          "min": 21.0,
+          "max": 24.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Lion",
+          "ilvl": 33,
+          "min": 17.0,
+          "max": 20.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Bear",
+          "ilvl": 22,
+          "min": 13.0,
+          "max": 16.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Wrestler",
+          "ilvl": 11,
+          "min": 9.0,
+          "max": 12.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Brute",
+          "ilvl": 1,
+          "min": 5.0,
+          "max": 8.0
+        }
+      ],
+      "category": "attribute",
+      "isPrefix": false,
+      "tags": [
+        "attribute"
+      ]
+    },
+    {
+      "id": "explicit.fireresistance",
+      "name": "FireResistance",
+      "textPattern": "#% to Fire Resistance",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "Shield (Str)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Tzteosh",
+          "ilvl": 82,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 2,
+          "name": "of Magma",
+          "ilvl": 71,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Volcano",
+          "ilvl": 60,
+          "min": 31.0,
+          "max": 35.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Furnace",
+          "ilvl": 48,
+          "min": 26.0,
+          "max": 30.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Kiln",
+          "ilvl": 36,
+          "min": 21.0,
+          "max": 25.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Drake",
+          "ilvl": 24,
+          "min": 16.0,
+          "max": 20.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Salamander",
+          "ilvl": 12,
+          "min": 11.0,
+          "max": 15.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Whelpling",
+          "ilvl": 1,
+          "min": 6.0,
+          "max": 10.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "fire",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.coldresistance",
+      "name": "ColdResistance",
+      "textPattern": "#% to Cold Resistance",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "Shield (Str)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Haast",
+          "ilvl": 82,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Ice",
+          "ilvl": 71,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Polar Bear",
+          "ilvl": 60,
+          "min": 31.0,
+          "max": 35.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Walrus",
+          "ilvl": 50,
+          "min": 26.0,
+          "max": 30.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Yeti",
+          "ilvl": 38,
+          "min": 21.0,
+          "max": 25.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Narwhal",
+          "ilvl": 26,
+          "min": 16.0,
+          "max": 20.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Penguin",
+          "ilvl": 14,
+          "min": 11.0,
+          "max": 15.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Seal",
+          "ilvl": 1,
+          "min": 6.0,
+          "max": 10.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "cold",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.lightningresistance",
+      "name": "LightningResistance",
+      "textPattern": "#% to Lightning Resistance",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "Shield (Str)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Ephij",
+          "ilvl": 82,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Lightning",
+          "ilvl": 71,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Maelstrom",
+          "ilvl": 60,
+          "min": 31.0,
+          "max": 35.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Tempest",
+          "ilvl": 49,
+          "min": 26.0,
+          "max": 30.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Thunderhead",
+          "ilvl": 37,
+          "min": 21.0,
+          "max": 25.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Storm",
+          "ilvl": 25,
+          "min": 16.0,
+          "max": 20.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Squall",
+          "ilvl": 13,
+          "min": 11.0,
+          "max": 15.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Cloud",
+          "ilvl": 1,
+          "min": 6.0,
+          "max": 10.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "lightning",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.chaosresistance",
+      "name": "ChaosResistance",
+      "textPattern": "#% to Chaos Resistance",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "Shield (Str)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Bameth",
+          "ilvl": 81,
+          "min": 24.0,
+          "max": 27.0
+        },
+        {
+          "tier": 2,
+          "name": "of Exile",
+          "ilvl": 68,
+          "min": 20.0,
+          "max": 23.0
+        },
+        {
+          "tier": 3,
+          "name": "of Expulsion",
+          "ilvl": 56,
+          "min": 16.0,
+          "max": 19.0
+        },
+        {
+          "tier": 4,
+          "name": "of Eviction",
+          "ilvl": 44,
+          "min": 12.0,
+          "max": 15.0
+        },
+        {
+          "tier": 5,
+          "name": "of Banishment",
+          "ilvl": 30,
+          "min": 8.0,
+          "max": 11.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Lost",
+          "ilvl": 16,
+          "min": 4.0,
+          "max": 7.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "chaos",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.increasedlife",
+      "name": "IncreasedLife",
+      "textPattern": "# to maximum Life",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Prime",
+          "ilvl": 80,
+          "min": 200.0,
+          "max": 214.0
+        },
+        {
+          "tier": 2,
+          "name": "Rapturous",
+          "ilvl": 75,
+          "min": 190.0,
+          "max": 199.0
+        },
+        {
+          "tier": 3,
+          "name": "Vigorous",
+          "ilvl": 70,
+          "min": 175.0,
+          "max": 189.0
+        },
+        {
+          "tier": 4,
+          "name": "Fecund",
+          "ilvl": 65,
+          "min": 150.0,
+          "max": 174.0
+        },
+        {
+          "tier": 5,
+          "name": "Athlete's",
+          "ilvl": 60,
+          "min": 120.0,
+          "max": 149.0
+        },
+        {
+          "tier": 6,
+          "name": "Virile",
+          "ilvl": 54,
+          "min": 100.0,
+          "max": 119.0
+        },
+        {
+          "tier": 7,
+          "name": "Rotund",
+          "ilvl": 46,
+          "min": 85.0,
+          "max": 99.0
+        },
+        {
+          "tier": 8,
+          "name": "Robust",
+          "ilvl": 38,
+          "min": 70.0,
+          "max": 84.0
+        },
+        {
+          "tier": 9,
+          "name": "Stout",
+          "ilvl": 33,
+          "min": 60.0,
+          "max": 69.0
+        },
+        {
+          "tier": 10,
+          "name": "Stalwart",
+          "ilvl": 24,
+          "min": 40.0,
+          "max": 59.0
+        },
+        {
+          "tier": 11,
+          "name": "Sanguine",
+          "ilvl": 16,
+          "min": 30.0,
+          "max": 39.0
+        },
+        {
+          "tier": 12,
+          "name": "Healthy",
+          "ilvl": 6,
+          "min": 20.0,
+          "max": 29.0
+        },
+        {
+          "tier": 13,
+          "name": "Hale",
+          "ilvl": 1,
+          "min": 10.0,
+          "max": 19.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": true,
+      "tags": [
+        "life"
+      ]
+    },
+    {
+      "id": "explicit.baselocaldefences",
+      "name": "BaseLocalDefences",
+      "textPattern": "# to Armour",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Shield (Str)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Impervious",
+          "ilvl": 79,
+          "min": 257.0,
+          "max": 276.0
+        },
+        {
+          "tier": 2,
+          "name": "Unmoving",
+          "ilvl": 75,
+          "min": 226.0,
+          "max": 256.0
+        },
+        {
+          "tier": 3,
+          "name": "Abating",
+          "ilvl": 65,
+          "min": 203.0,
+          "max": 225.0
+        },
+        {
+          "tier": 4,
+          "name": "Enveloped",
+          "ilvl": 60,
+          "min": 161.0,
+          "max": 202.0
+        },
+        {
+          "tier": 5,
+          "name": "Encased",
+          "ilvl": 54,
+          "min": 123.0,
+          "max": 160.0
+        },
+        {
+          "tier": 6,
+          "name": "Carapaced",
+          "ilvl": 46,
+          "min": 103.0,
+          "max": 122.0
+        },
+        {
+          "tier": 7,
+          "name": "Plated",
+          "ilvl": 33,
+          "min": 83.0,
+          "max": 102.0
+        },
+        {
+          "tier": 8,
+          "name": "Fortified",
+          "ilvl": 25,
+          "min": 69.0,
+          "max": 82.0
+        },
+        {
+          "tier": 9,
+          "name": "Ribbed",
+          "ilvl": 16,
+          "min": 51.0,
+          "max": 68.0
+        },
+        {
+          "tier": 10,
+          "name": "Studded",
+          "ilvl": 8,
+          "min": 28.0,
+          "max": 50.0
+        },
+        {
+          "tier": 11,
+          "name": "Lacquered",
+          "ilvl": 1,
+          "min": 16.0,
+          "max": 27.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.defencespercent",
+      "name": "DefencesPercent",
+      "textPattern": "#% increased Armour",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Shield (Str)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Impenetrable",
+          "ilvl": 75,
+          "min": 101.0,
+          "max": 110.0
+        },
+        {
+          "tier": 2,
+          "name": "Impregnable",
+          "ilvl": 65,
+          "min": 92.0,
+          "max": 100.0
+        },
+        {
+          "tier": 3,
+          "name": "Girded",
+          "ilvl": 60,
+          "min": 80.0,
+          "max": 91.0
+        },
+        {
+          "tier": 4,
+          "name": "Thickened",
+          "ilvl": 54,
+          "min": 68.0,
+          "max": 79.0
+        },
+        {
+          "tier": 5,
+          "name": "Buttressed",
+          "ilvl": 46,
+          "min": 56.0,
+          "max": 67.0
+        },
+        {
+          "tier": 6,
+          "name": "Lobstered",
+          "ilvl": 35,
+          "min": 43.0,
+          "max": 55.0
+        },
+        {
+          "tier": 7,
+          "name": "Layered",
+          "ilvl": 16,
+          "min": 27.0,
+          "max": 42.0
+        },
+        {
+          "tier": 8,
+          "name": "Reinforced",
+          "ilvl": 2,
+          "min": 15.0,
+          "max": 26.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.baselocaldefencesandlife",
+      "name": "BaseLocalDefencesAndLife",
+      "textPattern": "#% increased Armour# to maximum Life",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Crocodile's",
+          "ilvl": 78,
+          "min": 39.0,
+          "max": 42.0
+        },
+        {
+          "tier": 2,
+          "name": "Octopus'",
+          "ilvl": 60,
+          "min": 33.0,
+          "max": 38.0
+        },
+        {
+          "tier": 3,
+          "name": "Nautilus'",
+          "ilvl": 46,
+          "min": 27.0,
+          "max": 32.0
+        },
+        {
+          "tier": 4,
+          "name": "Urchin's",
+          "ilvl": 33,
+          "min": 21.0,
+          "max": 26.0
+        },
+        {
+          "tier": 5,
+          "name": "Lobster's",
+          "ilvl": 16,
+          "min": 14.0,
+          "max": 20.0
+        },
+        {
+          "tier": 6,
+          "name": "Oyster's",
+          "ilvl": 8,
+          "min": 6.0,
+          "max": 13.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": true,
+      "tags": [
+        "life",
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.baselocaldefencesanddefencepercent",
+      "name": "BaseLocalDefencesAndDefencePercent",
+      "textPattern": "# to Armour#% increased Armour",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Hardened",
+          "ilvl": 78,
+          "min": 70.0,
+          "max": 86.0
+        },
+        {
+          "tier": 2,
+          "name": "Shelled",
+          "ilvl": 60,
+          "min": 54.0,
+          "max": 69.0
+        },
+        {
+          "tier": 3,
+          "name": "Pangolin's",
+          "ilvl": 46,
+          "min": 40.0,
+          "max": 53.0
+        },
+        {
+          "tier": 4,
+          "name": "Tortoise's",
+          "ilvl": 33,
+          "min": 30.0,
+          "max": 39.0
+        },
+        {
+          "tier": 5,
+          "name": "Snail's",
+          "ilvl": 16,
+          "min": 12.0,
+          "max": 29.0
+        },
+        {
+          "tier": 6,
+          "name": "Abalone's",
+          "ilvl": 8,
+          "min": 7.0,
+          "max": 11.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.localattributerequirements",
+      "name": "LocalAttributeRequirements",
+      "textPattern": "#% reduced Attribute Requirements",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Shield (Str)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Proficient",
+          "ilvl": 60,
+          "min": 35.0,
+          "max": 35.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Skilled",
+          "ilvl": 52,
+          "min": 30.0,
+          "max": 30.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Talented",
+          "ilvl": 40,
+          "min": 25.0,
+          "max": 25.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Apt",
+          "ilvl": 32,
+          "min": 20.0,
+          "max": 20.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Worthy",
+          "ilvl": 24,
+          "min": 15.0,
+          "max": 15.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.stunthreshold",
+      "name": "StunThreshold",
+      "textPattern": "# to Stun Threshold",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Belt",
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Obsidian Skin",
+          "ilvl": 72,
+          "min": 254.0,
+          "max": 304.0
+        },
+        {
+          "tier": 2,
+          "name": "of Corundum Skin",
+          "ilvl": 63,
+          "min": 207.0,
+          "max": 253.0
+        },
+        {
+          "tier": 3,
+          "name": "of Adamantite Skin",
+          "ilvl": 54,
+          "min": 164.0,
+          "max": 206.0
+        },
+        {
+          "tier": 4,
+          "name": "of Platinum Skin",
+          "ilvl": 45,
+          "min": 125.0,
+          "max": 163.0
+        },
+        {
+          "tier": 5,
+          "name": "of Granite Skin",
+          "ilvl": 36,
+          "min": 98.0,
+          "max": 124.0
+        },
+        {
+          "tier": 6,
+          "name": "of Steel Skin",
+          "ilvl": 29,
+          "min": 73.0,
+          "max": 97.0
+        },
+        {
+          "tier": 7,
+          "name": "of Iron Skin",
+          "ilvl": 22,
+          "min": 50.0,
+          "max": 72.0
+        },
+        {
+          "tier": 8,
+          "name": "of Stone Skin",
+          "ilvl": 15,
+          "min": 30.0,
+          "max": 49.0
+        },
+        {
+          "tier": 9,
+          "name": "of Reinforced Skin",
+          "ilvl": 8,
+          "min": 12.0,
+          "max": 29.0
+        },
+        {
+          "tier": 10,
+          "name": "of Thick Skin",
+          "ilvl": 1,
+          "min": 6.0,
+          "max": 11.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.thorns",
+      "name": "Thorns",
+      "textPattern": "# to # Physical Thorns damage",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Belt",
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Jagged",
+          "ilvl": 74,
+          "min": 101.0,
+          "max": 151.0
+        },
+        {
+          "tier": 2,
+          "name": "Edged",
+          "ilvl": 63,
+          "min": 64.0,
+          "max": 97.0
+        },
+        {
+          "tier": 3,
+          "name": "Spiked",
+          "ilvl": 48,
+          "min": 40.0,
+          "max": 60.0
+        },
+        {
+          "tier": 4,
+          "name": "Pointed",
+          "ilvl": 38,
+          "min": 24.0,
+          "max": 35.0
+        },
+        {
+          "tier": 5,
+          "name": "Barbed",
+          "ilvl": 19,
+          "min": 11.0,
+          "max": 16.0
+        },
+        {
+          "tier": 6,
+          "name": "Spiny",
+          "ilvl": 10,
+          "min": 5.0,
+          "max": 7.0
+        },
+        {
+          "tier": 7,
+          "name": "Thorny",
+          "ilvl": 1,
+          "min": 1.0,
+          "max": 2.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "physical"
+      ]
+    },
+    {
+      "id": "explicit.liferegeneration",
+      "name": "LifeRegeneration",
+      "textPattern": "# Life Regeneration per second",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "Sceptre"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Phoenix",
+          "ilvl": 81,
+          "min": 33.1,
+          "max": 36.0
+        },
+        {
+          "tier": 2,
+          "name": "of Immortality",
+          "ilvl": 75,
+          "min": 29.1,
+          "max": 33.0
+        },
+        {
+          "tier": 3,
+          "name": "of Resurgence",
+          "ilvl": 68,
+          "min": 23.1,
+          "max": 29.0
+        },
+        {
+          "tier": 4,
+          "name": "of Recuperation",
+          "ilvl": 58,
+          "min": 18.1,
+          "max": 23.0
+        },
+        {
+          "tier": 5,
+          "name": "of Convalescence",
+          "ilvl": 47,
+          "min": 13.1,
+          "max": 18.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Troll",
+          "ilvl": 35,
+          "min": 9.1,
+          "max": 13.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Hydra",
+          "ilvl": 26,
+          "min": 6.1,
+          "max": 9.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Starfish",
+          "ilvl": 17,
+          "min": 4.1,
+          "max": 6.0
+        },
+        {
+          "tier": 9,
+          "name": "of the Flatworm",
+          "ilvl": 11,
+          "min": 3.1,
+          "max": 4.0
+        },
+        {
+          "tier": 10,
+          "name": "of the Lizard",
+          "ilvl": 5,
+          "min": 2.1,
+          "max": 3.0
+        },
+        {
+          "tier": 11,
+          "name": "of the Newt",
+          "ilvl": 1,
+          "min": 1.0,
+          "max": 2.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": false,
+      "tags": [
+        "life"
+      ]
+    },
+    {
+      "id": "explicit.basespirit",
+      "name": "BaseSpirit",
+      "textPattern": "# to Spirit",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Queen's",
+          "ilvl": 78,
+          "min": 57.0,
+          "max": 61.0
+        },
+        {
+          "tier": 2,
+          "name": "Princess'",
+          "ilvl": 65,
+          "min": 54.0,
+          "max": 56.0
+        },
+        {
+          "tier": 3,
+          "name": "Duchess'",
+          "ilvl": 60,
+          "min": 51.0,
+          "max": 53.0
+        },
+        {
+          "tier": 4,
+          "name": "Countess'",
+          "ilvl": 54,
+          "min": 47.0,
+          "max": 50.0
+        },
+        {
+          "tier": 5,
+          "name": "Marchioness'",
+          "ilvl": 46,
+          "min": 43.0,
+          "max": 46.0
+        },
+        {
+          "tier": 6,
+          "name": "Viscountess'",
+          "ilvl": 33,
+          "min": 38.0,
+          "max": 42.0
+        },
+        {
+          "tier": 7,
+          "name": "Baronness'",
+          "ilvl": 25,
+          "min": 34.0,
+          "max": 37.0
+        },
+        {
+          "tier": 8,
+          "name": "Lady's",
+          "ilvl": 16,
+          "min": 30.0,
+          "max": 33.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": true,
+      "tags": []
+    },
+    {
+      "id": "explicit.reducedailmentduration",
+      "name": "ReducedAilmentDuration",
+      "textPattern": "#% reduced Ignite Duration on you",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Dex)",
+        "Body Armour (Int)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Dousing",
+          "ilvl": 76,
+          "min": 56.0,
+          "max": 60.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Antidote",
+          "ilvl": 76,
+          "min": 56.0,
+          "max": 60.0
+        },
+        {
+          "tier": 3,
+          "name": "of Staunching",
+          "ilvl": 76,
+          "min": 56.0,
+          "max": 60.0
+        },
+        {
+          "tier": 4,
+          "name": "of Quenching",
+          "ilvl": 64,
+          "min": 51.0,
+          "max": 55.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Panacea",
+          "ilvl": 64,
+          "min": 51.0,
+          "max": 55.0
+        },
+        {
+          "tier": 6,
+          "name": "of Assuaging",
+          "ilvl": 64,
+          "min": 51.0,
+          "max": 55.0
+        },
+        {
+          "tier": 7,
+          "name": "of Quelling",
+          "ilvl": 50,
+          "min": 46.0,
+          "max": 50.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Cure",
+          "ilvl": 50,
+          "min": 46.0,
+          "max": 50.0
+        },
+        {
+          "tier": 9,
+          "name": "of Allaying",
+          "ilvl": 50,
+          "min": 46.0,
+          "max": 50.0
+        },
+        {
+          "tier": 10,
+          "name": "of Quashing",
+          "ilvl": 37,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 11,
+          "name": "of the Remedy",
+          "ilvl": 37,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 12,
+          "name": "of Alleviation",
+          "ilvl": 37,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 13,
+          "name": "of Damping",
+          "ilvl": 21,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 14,
+          "name": "of the Antitoxin",
+          "ilvl": 21,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 15,
+          "name": "of Sealing",
+          "ilvl": 21,
+          "min": 36.0,
+          "max": 40.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": [
+        "physical",
+        "ailment"
+      ]
+    },
+    {
+      "id": "explicit.armourappliestoelementaldamage",
+      "name": "ArmourAppliesToElementalDamage",
+      "textPattern": "#% of Armour also applies to Elemental Damage",
+      "itemClasses": [
+        "Body Armour (Str)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Str/Int)",
+        "Helmet (Str)",
+        "Gloves (Str)",
+        "Boots (Str)",
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Thermokryptance",
+          "ilvl": 81,
+          "min": 44.0,
+          "max": 50.0
+        },
+        {
+          "tier": 2,
+          "name": "of Furring",
+          "ilvl": 66,
+          "min": 38.0,
+          "max": 43.0
+        },
+        {
+          "tier": 3,
+          "name": "of Padding",
+          "ilvl": 48,
+          "min": 32.0,
+          "max": 37.0
+        },
+        {
+          "tier": 4,
+          "name": "of Lining",
+          "ilvl": 36,
+          "min": 26.0,
+          "max": 31.0
+        },
+        {
+          "tier": 5,
+          "name": "of Sheathing",
+          "ilvl": 16,
+          "min": 20.0,
+          "max": 25.0
+        },
+        {
+          "tier": 6,
+          "name": "of Covering",
+          "ilvl": 1,
+          "min": 14.0,
+          "max": 19.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": false,
+      "tags": [
+        "defences",
+        "elemental"
+      ]
+    },
+    {
+      "id": "explicit.dexterity",
+      "name": "Dexterity",
+      "textPattern": "# to Dexterity",
+      "itemClasses": [
+        "Body Armour (Dex)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Dex)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Dex)",
+        "Amulet",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "Spear",
+        "Bow",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Phantom",
+          "ilvl": 74,
+          "min": 31.0,
+          "max": 33.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Jaguar",
+          "ilvl": 66,
+          "min": 28.0,
+          "max": 30.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Leopard",
+          "ilvl": 55,
+          "min": 25.0,
+          "max": 27.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Panther",
+          "ilvl": 44,
+          "min": 21.0,
+          "max": 24.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Falcon",
+          "ilvl": 33,
+          "min": 17.0,
+          "max": 20.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Fox",
+          "ilvl": 22,
+          "min": 13.0,
+          "max": 16.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Lynx",
+          "ilvl": 11,
+          "min": 9.0,
+          "max": 12.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Mongoose",
+          "ilvl": 1,
+          "min": 5.0,
+          "max": 8.0
+        }
+      ],
+      "category": "attribute",
+      "isPrefix": false,
+      "tags": [
+        "attribute"
+      ]
+    },
+    {
+      "id": "explicit.evasionappliestodeflection",
+      "name": "EvasionAppliesToDeflection",
+      "textPattern": "Gain Deflection Rating equal to #% of Evasion Rating",
+      "itemClasses": [
+        "Body Armour (Dex)",
+        "Body Armour (Str/Dex)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Dex)",
+        "Gloves (Dex)",
+        "Boots (Dex)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Warping",
+          "ilvl": 81,
+          "min": 24.0,
+          "max": 26.0
+        },
+        {
+          "tier": 2,
+          "name": "of Flexure",
+          "ilvl": 66,
+          "min": 21.0,
+          "max": 23.0
+        },
+        {
+          "tier": 3,
+          "name": "of Diversion",
+          "ilvl": 48,
+          "min": 18.0,
+          "max": 20.0
+        },
+        {
+          "tier": 4,
+          "name": "of Curvation",
+          "ilvl": 36,
+          "min": 15.0,
+          "max": 17.0
+        },
+        {
+          "tier": 5,
+          "name": "of Bending",
+          "ilvl": 16,
+          "min": 12.0,
+          "max": 14.0
+        },
+        {
+          "tier": 6,
+          "name": "of Deflecting",
+          "ilvl": 1,
+          "min": 8.0,
+          "max": 11.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": false,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.intelligence",
+      "name": "Intelligence",
+      "textPattern": "# to Intelligence",
+      "itemClasses": [
+        "Body Armour (Int)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Int)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Dagger",
+        "Wand",
+        "Sceptre",
+        "Flail",
+        "Staff",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Virtuoso",
+          "ilvl": 74,
+          "min": 31.0,
+          "max": 33.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Savant",
+          "ilvl": 66,
+          "min": 28.0,
+          "max": 30.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Sage",
+          "ilvl": 55,
+          "min": 25.0,
+          "max": 27.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Philosopher",
+          "ilvl": 44,
+          "min": 21.0,
+          "max": 24.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Augur",
+          "ilvl": 33,
+          "min": 17.0,
+          "max": 20.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Prodigy",
+          "ilvl": 22,
+          "min": 13.0,
+          "max": 16.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Student",
+          "ilvl": 11,
+          "min": 9.0,
+          "max": 12.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Pupil",
+          "ilvl": 1,
+          "min": 5.0,
+          "max": 8.0
+        }
+      ],
+      "category": "attribute",
+      "isPrefix": false,
+      "tags": [
+        "attribute"
+      ]
+    },
+    {
+      "id": "explicit.energyshielddelay",
+      "name": "EnergyShieldDelay",
+      "textPattern": "#% faster start of Energy Shield Recharge",
+      "itemClasses": [
+        "Body Armour (Int)",
+        "Body Armour (Str/Int)",
+        "Body Armour (Dex/Int)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Anticipation",
+          "ilvl": 81,
+          "min": 51.0,
+          "max": 55.0
+        },
+        {
+          "tier": 2,
+          "name": "of Excitement",
+          "ilvl": 66,
+          "min": 46.0,
+          "max": 50.0
+        },
+        {
+          "tier": 3,
+          "name": "of Motivation",
+          "ilvl": 48,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 4,
+          "name": "of Fretfulness",
+          "ilvl": 36,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 5,
+          "name": "of Restlessness",
+          "ilvl": 16,
+          "min": 31.0,
+          "max": 35.0
+        },
+        {
+          "tier": 6,
+          "name": "of Impatience",
+          "ilvl": 1,
+          "min": 26.0,
+          "max": 30.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": false,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.increasedmana",
+      "name": "IncreasedMana",
+      "textPattern": "# to maximum Mana",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring",
+        "Belt",
+        "Wand",
+        "Sceptre",
+        "Staff",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Mazarine",
+          "ilvl": 65,
+          "min": 125.0,
+          "max": 149.0
+        },
+        {
+          "tier": 2,
+          "name": "Chalybeous",
+          "ilvl": 60,
+          "min": 105.0,
+          "max": 124.0
+        },
+        {
+          "tier": 3,
+          "name": "Gentian",
+          "ilvl": 54,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 4,
+          "name": "Opalescent",
+          "ilvl": 46,
+          "min": 80.0,
+          "max": 89.0
+        },
+        {
+          "tier": 5,
+          "name": "Aqua",
+          "ilvl": 38,
+          "min": 65.0,
+          "max": 79.0
+        },
+        {
+          "tier": 6,
+          "name": "Cerulean",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 7,
+          "name": "Teal",
+          "ilvl": 25,
+          "min": 35.0,
+          "max": 54.0
+        },
+        {
+          "tier": 8,
+          "name": "Azure",
+          "ilvl": 16,
+          "min": 25.0,
+          "max": 34.0
+        },
+        {
+          "tier": 9,
+          "name": "Cobalt",
+          "ilvl": 6,
+          "min": 15.0,
+          "max": 24.0
+        },
+        {
+          "tier": 10,
+          "name": "Beryl",
+          "ilvl": 1,
+          "min": 10.0,
+          "max": 14.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": true,
+      "tags": [
+        "mana"
+      ]
+    },
+    {
+      "id": "explicit.baselocaldefencesandmana",
+      "name": "BaseLocalDefencesAndMana",
+      "textPattern": "#% increased Armour# to maximum Mana",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Ancestral",
+          "ilvl": 78,
+          "min": 39.0,
+          "max": 42.0
+        },
+        {
+          "tier": 2,
+          "name": "Chieftain's",
+          "ilvl": 60,
+          "min": 33.0,
+          "max": 38.0
+        },
+        {
+          "tier": 3,
+          "name": "Colossal",
+          "ilvl": 46,
+          "min": 27.0,
+          "max": 32.0
+        },
+        {
+          "tier": 4,
+          "name": "Regal",
+          "ilvl": 33,
+          "min": 21.0,
+          "max": 26.0
+        },
+        {
+          "tier": 5,
+          "name": "Venerable",
+          "ilvl": 16,
+          "min": 14.0,
+          "max": 20.0
+        },
+        {
+          "tier": 6,
+          "name": "Imposing",
+          "ilvl": 8,
+          "min": 6.0,
+          "max": 13.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": true,
+      "tags": [
+        "mana",
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.increasesocketedgemlevel",
+      "name": "IncreaseSocketedGemLevel",
+      "textPattern": "# to Level of all Minion Skills",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Amulet",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Quiver",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Despot",
+          "ilvl": 41,
+          "min": 2.0,
+          "max": 2.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Taskmaster",
+          "ilvl": 5,
+          "min": 1.0,
+          "max": 1.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": [
+        "minion",
+        "gem"
+      ]
+    },
+    {
+      "id": "explicit.increasedaccuracy",
+      "name": "IncreasedAccuracy",
+      "textPattern": "# to Accuracy Rating",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Amulet",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Amazon's",
+          "ilvl": 76,
+          "min": 451.0,
+          "max": 550.0
+        },
+        {
+          "tier": 2,
+          "name": "Ranger's",
+          "ilvl": 67,
+          "min": 347.0,
+          "max": 450.0
+        },
+        {
+          "tier": 3,
+          "name": "Hunter's",
+          "ilvl": 58,
+          "min": 237.0,
+          "max": 346.0
+        },
+        {
+          "tier": 4,
+          "name": "Steady",
+          "ilvl": 48,
+          "min": 168.0,
+          "max": 236.0
+        },
+        {
+          "tier": 5,
+          "name": "Consistent",
+          "ilvl": 36,
+          "min": 124.0,
+          "max": 167.0
+        },
+        {
+          "tier": 6,
+          "name": "Deliberate",
+          "ilvl": 26,
+          "min": 85.0,
+          "max": 123.0
+        },
+        {
+          "tier": 7,
+          "name": "Focused",
+          "ilvl": 18,
+          "min": 61.0,
+          "max": 84.0
+        },
+        {
+          "tier": 8,
+          "name": "Reliable",
+          "ilvl": 11,
+          "min": 33.0,
+          "max": 60.0
+        },
+        {
+          "tier": 9,
+          "name": "Precise",
+          "ilvl": 1,
+          "min": 11.0,
+          "max": 32.0
+        }
+      ],
+      "category": "accuracy",
+      "isPrefix": true,
+      "tags": [
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.criticalstrikechanceincrease",
+      "name": "CriticalStrikeChanceIncrease",
+      "textPattern": "#% increased Critical Hit Chance",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Amulet",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Ruin",
+          "ilvl": 58,
+          "min": 30.0,
+          "max": 34.0
+        },
+        {
+          "tier": 2,
+          "name": "of Calamity",
+          "ilvl": 44,
+          "min": 25.0,
+          "max": 29.0
+        },
+        {
+          "tier": 3,
+          "name": "of Disaster",
+          "ilvl": 30,
+          "min": 20.0,
+          "max": 24.0
+        },
+        {
+          "tier": 4,
+          "name": "of Havoc",
+          "ilvl": 20,
+          "min": 15.0,
+          "max": 19.0
+        },
+        {
+          "tier": 5,
+          "name": "of Menace",
+          "ilvl": 5,
+          "min": 10.0,
+          "max": 14.0
+        }
+      ],
+      "category": "critical",
+      "isPrefix": false,
+      "tags": [
+        "critical"
+      ]
+    },
+    {
+      "id": "explicit.itemfoundrarityincrease",
+      "name": "ItemFoundRarityIncrease",
+      "textPattern": "#% increased Rarity of Items found",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Amulet",
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Archaeology",
+          "ilvl": 40,
+          "min": 15.0,
+          "max": 18.0
+        },
+        {
+          "tier": 2,
+          "name": "of Raiding",
+          "ilvl": 24,
+          "min": 11.0,
+          "max": 14.0
+        },
+        {
+          "tier": 3,
+          "name": "of Plunder",
+          "ilvl": 3,
+          "min": 6.0,
+          "max": 10.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.itemfoundrarityincreaseprefix",
+      "name": "ItemFoundRarityIncreasePrefix",
+      "textPattern": "#% increased Rarity of Items found",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Amulet",
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Hoarder's",
+          "ilvl": 47,
+          "min": 16.0,
+          "max": 19.0
+        },
+        {
+          "tier": 2,
+          "name": "Collector's",
+          "ilvl": 29,
+          "min": 12.0,
+          "max": 15.0
+        },
+        {
+          "tier": 3,
+          "name": "Magpie's",
+          "ilvl": 10,
+          "min": 8.0,
+          "max": 11.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": true,
+      "tags": []
+    },
+    {
+      "id": "explicit.lightradiusandaccuracy",
+      "name": "LightRadiusAndAccuracy",
+      "textPattern": "# to Accuracy Rating15% increased Light Radius",
+      "itemClasses": [
+        "Helmet (Str)",
+        "Helmet (Dex)",
+        "Helmet (Int)",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Radiance",
+          "ilvl": 30,
+          "min": 41.0,
+          "max": 60.0
+        },
+        {
+          "tier": 2,
+          "name": "of Light",
+          "ilvl": 15,
+          "min": 21.0,
+          "max": 40.0
+        },
+        {
+          "tier": 3,
+          "name": "of Shining",
+          "ilvl": 8,
+          "min": 10.0,
+          "max": 20.0
+        }
+      ],
+      "category": "accuracy",
+      "isPrefix": false,
+      "tags": [
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.energyshieldregeneration",
+      "name": "EnergyShieldRegeneration",
+      "textPattern": "#% increased Energy Shield Recharge Rate",
+      "itemClasses": [
+        "Helmet (Int)",
+        "Gloves (Int)",
+        "Boots (Int)",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Buffering",
+          "ilvl": 48,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 2,
+          "name": "of Dispersal",
+          "ilvl": 36,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 3,
+          "name": "of Diffusion",
+          "ilvl": 16,
+          "min": 31.0,
+          "max": 35.0
+        },
+        {
+          "tier": 4,
+          "name": "of Enlivening",
+          "ilvl": 1,
+          "min": 26.0,
+          "max": 30.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": false,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.physicaldamage",
+      "name": "PhysicalDamage",
+      "textPattern": "Adds # to # Physical Damage to Attacks",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Flaring",
+          "ilvl": 75,
+          "min": 12.0,
+          "max": 19.0
+        },
+        {
+          "tier": 2,
+          "name": "Tempered",
+          "ilvl": 65,
+          "min": 10.0,
+          "max": 15.0
+        },
+        {
+          "tier": 3,
+          "name": "Razor-sharp",
+          "ilvl": 60,
+          "min": 7.0,
+          "max": 11.0
+        },
+        {
+          "tier": 4,
+          "name": "Annealed",
+          "ilvl": 54,
+          "min": 6.0,
+          "max": 10.0
+        },
+        {
+          "tier": 5,
+          "name": "Gleaming",
+          "ilvl": 46,
+          "min": 5.0,
+          "max": 7.0
+        },
+        {
+          "tier": 6,
+          "name": "Honed",
+          "ilvl": 33,
+          "min": 4.0,
+          "max": 6.0
+        },
+        {
+          "tier": 7,
+          "name": "Polished",
+          "ilvl": 16,
+          "min": 2.0,
+          "max": 4.0
+        },
+        {
+          "tier": 8,
+          "name": "Burnished",
+          "ilvl": 8,
+          "min": 2.0,
+          "max": 3.0
+        },
+        {
+          "tier": 9,
+          "name": "Glinting",
+          "ilvl": 1,
+          "min": 1.0,
+          "max": 2.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "physical",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.firedamage",
+      "name": "FireDamage",
+      "textPattern": "Adds # to # Fire damage to Attacks",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Cremating",
+          "ilvl": 75,
+          "min": 25.0,
+          "max": 29.0
+        },
+        {
+          "tier": 2,
+          "name": "Blasting",
+          "ilvl": 65,
+          "min": 20.0,
+          "max": 24.0
+        },
+        {
+          "tier": 3,
+          "name": "Incinerating",
+          "ilvl": 60,
+          "min": 13.0,
+          "max": 19.0
+        },
+        {
+          "tier": 4,
+          "name": "Scorching",
+          "ilvl": 54,
+          "min": 11.0,
+          "max": 16.0
+        },
+        {
+          "tier": 5,
+          "name": "Flaming",
+          "ilvl": 46,
+          "min": 12.0,
+          "max": 13.0
+        },
+        {
+          "tier": 6,
+          "name": "Burning",
+          "ilvl": 33,
+          "min": 9.0,
+          "max": 11.0
+        },
+        {
+          "tier": 7,
+          "name": "Smoking",
+          "ilvl": 16,
+          "min": 6.0,
+          "max": 8.0
+        },
+        {
+          "tier": 8,
+          "name": "Smouldering",
+          "ilvl": 8,
+          "min": 3.0,
+          "max": 5.0
+        },
+        {
+          "tier": 9,
+          "name": "Heated",
+          "ilvl": 1,
+          "min": 1.0,
+          "max": 2.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "fire",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.colddamage",
+      "name": "ColdDamage",
+      "textPattern": "Adds # to # Cold damage to Attacks",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Entombing",
+          "ilvl": 75,
+          "min": 21.0,
+          "max": 24.0
+        },
+        {
+          "tier": 2,
+          "name": "Polar",
+          "ilvl": 65,
+          "min": 16.0,
+          "max": 20.0
+        },
+        {
+          "tier": 3,
+          "name": "Glaciated",
+          "ilvl": 60,
+          "min": 14.0,
+          "max": 15.0
+        },
+        {
+          "tier": 4,
+          "name": "Frozen",
+          "ilvl": 54,
+          "min": 11.0,
+          "max": 13.0
+        },
+        {
+          "tier": 5,
+          "name": "Freezing",
+          "ilvl": 46,
+          "min": 9.0,
+          "max": 10.0
+        },
+        {
+          "tier": 6,
+          "name": "Frigid",
+          "ilvl": 33,
+          "min": 7.0,
+          "max": 8.0
+        },
+        {
+          "tier": 7,
+          "name": "Icy",
+          "ilvl": 16,
+          "min": 5.0,
+          "max": 6.0
+        },
+        {
+          "tier": 8,
+          "name": "Chilled",
+          "ilvl": 8,
+          "min": 3.0,
+          "max": 4.0
+        },
+        {
+          "tier": 9,
+          "name": "Frosted",
+          "ilvl": 1,
+          "min": 2.0,
+          "max": 3.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "cold",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.lightningdamage",
+      "name": "LightningDamage",
+      "textPattern": "Adds # to # Lightning damage to Attacks",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Electrocuting",
+          "ilvl": 75,
+          "min": 1.0,
+          "max": 4.0
+        },
+        {
+          "tier": 2,
+          "name": "Discharging",
+          "ilvl": 65,
+          "min": 1.0,
+          "max": 3.0
+        },
+        {
+          "tier": 3,
+          "name": "Shocking",
+          "ilvl": 60,
+          "min": 1.0,
+          "max": 2.0
+        },
+        {
+          "tier": 4,
+          "name": "Arcing",
+          "ilvl": 54,
+          "min": 1.0,
+          "max": 2.0
+        },
+        {
+          "tier": 5,
+          "name": "Sparking",
+          "ilvl": 46,
+          "min": 28.0,
+          "max": 32.0
+        },
+        {
+          "tier": 6,
+          "name": "Crackling",
+          "ilvl": 33,
+          "min": 23.0,
+          "max": 27.0
+        },
+        {
+          "tier": 7,
+          "name": "Snapping",
+          "ilvl": 16,
+          "min": 16.0,
+          "max": 22.0
+        },
+        {
+          "tier": 8,
+          "name": "Buzzing",
+          "ilvl": 8,
+          "min": 10.0,
+          "max": 15.0
+        },
+        {
+          "tier": 9,
+          "name": "Humming",
+          "ilvl": 1,
+          "min": 4.0,
+          "max": 6.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "lightning",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.lifeleech",
+      "name": "LifeLeech",
+      "textPattern": "Leech #% of Physical Attack Damage as Life",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Vampire",
+          "ilvl": 81,
+          "min": 9.0,
+          "max": 9.9
+        },
+        {
+          "tier": 2,
+          "name": "of the Lamprey",
+          "ilvl": 68,
+          "min": 8.0,
+          "max": 8.9
+        },
+        {
+          "tier": 3,
+          "name": "of the Remora",
+          "ilvl": 54,
+          "min": 7.0,
+          "max": 7.9
+        },
+        {
+          "tier": 4,
+          "name": "of the Locust",
+          "ilvl": 38,
+          "min": 6.0,
+          "max": 6.9
+        },
+        {
+          "tier": 5,
+          "name": "of the Parasite",
+          "ilvl": 21,
+          "min": 5.0,
+          "max": 5.9
+        }
+      ],
+      "category": "life",
+      "isPrefix": false,
+      "tags": [
+        "life",
+        "physical",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.manaleech",
+      "name": "ManaLeech",
+      "textPattern": "Leech #% of Physical Attack Damage as Mana",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Desperate",
+          "ilvl": 81,
+          "min": 8.0,
+          "max": 8.9
+        },
+        {
+          "tier": 2,
+          "name": "of the Drought",
+          "ilvl": 68,
+          "min": 7.0,
+          "max": 7.9
+        },
+        {
+          "tier": 3,
+          "name": "of the Arid",
+          "ilvl": 54,
+          "min": 6.0,
+          "max": 6.9
+        },
+        {
+          "tier": 4,
+          "name": "of the Parched",
+          "ilvl": 38,
+          "min": 5.0,
+          "max": 5.9
+        },
+        {
+          "tier": 5,
+          "name": "of the Thirsty",
+          "ilvl": 21,
+          "min": 4.0,
+          "max": 4.9
+        }
+      ],
+      "category": "mana",
+      "isPrefix": false,
+      "tags": [
+        "mana",
+        "physical",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.lifegainedfromenemydeath",
+      "name": "LifeGainedFromEnemyDeath",
+      "textPattern": "Gain # Life per enemy killed",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Legend",
+          "ilvl": 77,
+          "min": 69.0,
+          "max": 84.0
+        },
+        {
+          "tier": 2,
+          "name": "of Glory",
+          "ilvl": 66,
+          "min": 54.0,
+          "max": 68.0
+        },
+        {
+          "tier": 3,
+          "name": "of Valour",
+          "ilvl": 55,
+          "min": 41.0,
+          "max": 53.0
+        },
+        {
+          "tier": 4,
+          "name": "of Vanquishing",
+          "ilvl": 44,
+          "min": 29.0,
+          "max": 40.0
+        },
+        {
+          "tier": 5,
+          "name": "of Conquest",
+          "ilvl": 33,
+          "min": 19.0,
+          "max": 28.0
+        },
+        {
+          "tier": 6,
+          "name": "of Triumph",
+          "ilvl": 22,
+          "min": 10.0,
+          "max": 18.0
+        },
+        {
+          "tier": 7,
+          "name": "of Victory",
+          "ilvl": 11,
+          "min": 7.0,
+          "max": 9.0
+        },
+        {
+          "tier": 8,
+          "name": "of Success",
+          "ilvl": 1,
+          "min": 4.0,
+          "max": 6.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": false,
+      "tags": [
+        "life"
+      ]
+    },
+    {
+      "id": "explicit.managainedfromenemydeath",
+      "name": "ManaGainedFromEnemyDeath",
+      "textPattern": "Gain # Mana per enemy killed",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Ring",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Assimilation",
+          "ilvl": 78,
+          "min": 36.0,
+          "max": 45.0
+        },
+        {
+          "tier": 2,
+          "name": "of Devouring",
+          "ilvl": 67,
+          "min": 28.0,
+          "max": 35.0
+        },
+        {
+          "tier": 3,
+          "name": "of Siphoning",
+          "ilvl": 56,
+          "min": 21.0,
+          "max": 27.0
+        },
+        {
+          "tier": 4,
+          "name": "of Consumption",
+          "ilvl": 45,
+          "min": 15.0,
+          "max": 20.0
+        },
+        {
+          "tier": 5,
+          "name": "of Enveloping",
+          "ilvl": 34,
+          "min": 10.0,
+          "max": 14.0
+        },
+        {
+          "tier": 6,
+          "name": "of Infusion",
+          "ilvl": 23,
+          "min": 6.0,
+          "max": 9.0
+        },
+        {
+          "tier": 7,
+          "name": "of Osmosis",
+          "ilvl": 12,
+          "min": 4.0,
+          "max": 5.0
+        },
+        {
+          "tier": 8,
+          "name": "of Absorption",
+          "ilvl": 1,
+          "min": 2.0,
+          "max": 3.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": false,
+      "tags": [
+        "mana"
+      ]
+    },
+    {
+      "id": "explicit.lifegainpertarget",
+      "name": "LifeGainPerTarget",
+      "textPattern": "Gain # Life per Enemy Hit with Attacks",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Nourishment",
+          "ilvl": 40,
+          "min": 5.0,
+          "max": 5.0
+        },
+        {
+          "tier": 2,
+          "name": "of Regrowth",
+          "ilvl": 30,
+          "min": 4.0,
+          "max": 4.0
+        },
+        {
+          "tier": 3,
+          "name": "of Restoration",
+          "ilvl": 20,
+          "min": 3.0,
+          "max": 3.0
+        },
+        {
+          "tier": 4,
+          "name": "of Rejuvenation",
+          "ilvl": 8,
+          "min": 2.0,
+          "max": 2.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": false,
+      "tags": [
+        "life",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.increasedattackspeed",
+      "name": "IncreasedAttackSpeed",
+      "textPattern": "#% increased Attack Speed",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow",
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Renown",
+          "ilvl": 60,
+          "min": 14.0,
+          "max": 16.0
+        },
+        {
+          "tier": 2,
+          "name": "of Mastery",
+          "ilvl": 37,
+          "min": 11.0,
+          "max": 13.0
+        },
+        {
+          "tier": 3,
+          "name": "of Ease",
+          "ilvl": 22,
+          "min": 8.0,
+          "max": 10.0
+        },
+        {
+          "tier": 4,
+          "name": "of Skill",
+          "ilvl": 1,
+          "min": 5.0,
+          "max": 7.0
+        }
+      ],
+      "category": "speed",
+      "isPrefix": false,
+      "tags": [
+        "attack",
+        "speed"
+      ]
+    },
+    {
+      "id": "explicit.criticalstrikemultiplier",
+      "name": "CriticalStrikeMultiplier",
+      "textPattern": "#% increased Critical Damage Bonus",
+      "itemClasses": [
+        "Gloves (Str)",
+        "Gloves (Dex)",
+        "Gloves (Int)",
+        "Amulet",
+        "Claw",
+        "Dagger",
+        "Wand",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Sceptre",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Staff",
+        "Crossbow",
+        "Quiver",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Ferocity",
+          "ilvl": 59,
+          "min": 30.0,
+          "max": 34.0
+        },
+        {
+          "tier": 2,
+          "name": "of Fury",
+          "ilvl": 45,
+          "min": 25.0,
+          "max": 29.0
+        },
+        {
+          "tier": 3,
+          "name": "of Rage",
+          "ilvl": 31,
+          "min": 20.0,
+          "max": 24.0
+        },
+        {
+          "tier": 4,
+          "name": "of Anger",
+          "ilvl": 21,
+          "min": 15.0,
+          "max": 19.0
+        },
+        {
+          "tier": 5,
+          "name": "of Ire",
+          "ilvl": 8,
+          "min": 10.0,
+          "max": 14.0
+        }
+      ],
+      "category": "critical",
+      "isPrefix": false,
+      "tags": [
+        "damage",
+        "critical"
+      ]
+    },
+    {
+      "id": "explicit.defencespercentandstunthreshold",
+      "name": "DefencesPercentAndStunThreshold",
+      "textPattern": "#% increased Armour# to Stun Threshold",
+      "itemClasses": [
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)",
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Mammoth's",
+          "ilvl": 74,
+          "min": 39.0,
+          "max": 42.0
+        },
+        {
+          "tier": 2,
+          "name": "Elephant's",
+          "ilvl": 63,
+          "min": 33.0,
+          "max": 38.0
+        },
+        {
+          "tier": 3,
+          "name": "Rhino's",
+          "ilvl": 48,
+          "min": 27.0,
+          "max": 32.0
+        },
+        {
+          "tier": 4,
+          "name": "Armadillo's",
+          "ilvl": 38,
+          "min": 21.0,
+          "max": 26.0
+        },
+        {
+          "tier": 5,
+          "name": "Crab's",
+          "ilvl": 19,
+          "min": 14.0,
+          "max": 20.0
+        },
+        {
+          "tier": 6,
+          "name": "Beetle's",
+          "ilvl": 10,
+          "min": 6.0,
+          "max": 13.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": true,
+      "tags": []
+    },
+    {
+      "id": "explicit.movementvelocity",
+      "name": "MovementVelocity",
+      "textPattern": "#% increased Movement Speed",
+      "itemClasses": [
+        "Boots (Str)",
+        "Boots (Dex)",
+        "Boots (Int)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Hellion's",
+          "ilvl": 82,
+          "min": 35.0,
+          "max": 35.0
+        },
+        {
+          "tier": 2,
+          "name": "Cheetah's",
+          "ilvl": 65,
+          "min": 30.0,
+          "max": 30.0
+        },
+        {
+          "tier": 3,
+          "name": "Gazelle's",
+          "ilvl": 46,
+          "min": 25.0,
+          "max": 25.0
+        },
+        {
+          "tier": 4,
+          "name": "Stallion's",
+          "ilvl": 33,
+          "min": 20.0,
+          "max": 20.0
+        },
+        {
+          "tier": 5,
+          "name": "Sprinter's",
+          "ilvl": 16,
+          "min": 15.0,
+          "max": 15.0
+        },
+        {
+          "tier": 6,
+          "name": "Runner's",
+          "ilvl": 1,
+          "min": 10.0,
+          "max": 10.0
+        }
+      ],
+      "category": "speed",
+      "isPrefix": true,
+      "tags": [
+        "speed"
+      ]
+    },
+    {
+      "id": "explicit.allattributes",
+      "name": "AllAttributes",
+      "textPattern": "# to all Attributes",
+      "itemClasses": [
+        "Amulet",
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Infinite",
+          "ilvl": 82,
+          "min": 23.0,
+          "max": 24.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Multiverse",
+          "ilvl": 75,
+          "min": 21.0,
+          "max": 22.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Universe",
+          "ilvl": 66,
+          "min": 19.0,
+          "max": 20.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Galaxy",
+          "ilvl": 55,
+          "min": 17.0,
+          "max": 18.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Heavens",
+          "ilvl": 44,
+          "min": 14.0,
+          "max": 16.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Comet",
+          "ilvl": 33,
+          "min": 11.0,
+          "max": 13.0
+        },
+        {
+          "tier": 7,
+          "name": "of the Meteor",
+          "ilvl": 22,
+          "min": 8.0,
+          "max": 10.0
+        },
+        {
+          "tier": 8,
+          "name": "of the Sky",
+          "ilvl": 11,
+          "min": 5.0,
+          "max": 7.0
+        },
+        {
+          "tier": 9,
+          "name": "of the Clouds",
+          "ilvl": 1,
+          "min": 2.0,
+          "max": 4.0
+        }
+      ],
+      "category": "attribute",
+      "isPrefix": false,
+      "tags": [
+        "attribute"
+      ]
+    },
+    {
+      "id": "explicit.allresistances",
+      "name": "AllResistances",
+      "textPattern": "#% to all Elemental Resistances",
+      "itemClasses": [
+        "Amulet",
+        "Ring",
+        "Sceptre"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Span",
+          "ilvl": 80,
+          "min": 17.0,
+          "max": 18.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Rainbow",
+          "ilvl": 68,
+          "min": 15.0,
+          "max": 16.0
+        },
+        {
+          "tier": 3,
+          "name": "of Variegation",
+          "ilvl": 54,
+          "min": 12.0,
+          "max": 14.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Kaleidoscope",
+          "ilvl": 40,
+          "min": 9.0,
+          "max": 11.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Prism",
+          "ilvl": 26,
+          "min": 6.0,
+          "max": 8.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Crystal",
+          "ilvl": 12,
+          "min": 3.0,
+          "max": 5.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "fire",
+        "cold",
+        "lightning",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.maximumlifeincreasepercent",
+      "name": "MaximumLifeIncreasePercent",
+      "textPattern": "#% increased maximum Life",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Confident",
+          "ilvl": 75,
+          "min": 7.0,
+          "max": 8.0
+        },
+        {
+          "tier": 2,
+          "name": "Optimistic",
+          "ilvl": 60,
+          "min": 5.0,
+          "max": 6.0
+        },
+        {
+          "tier": 3,
+          "name": "Hopeful",
+          "ilvl": 33,
+          "min": 3.0,
+          "max": 4.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": true,
+      "tags": [
+        "life"
+      ]
+    },
+    {
+      "id": "explicit.maximummanaincreasepercent",
+      "name": "MaximumManaIncreasePercent",
+      "textPattern": "#% increased maximum Mana",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Mnemonic",
+          "ilvl": 75,
+          "min": 7.0,
+          "max": 8.0
+        },
+        {
+          "tier": 2,
+          "name": "Perceptive",
+          "ilvl": 60,
+          "min": 5.0,
+          "max": 6.0
+        },
+        {
+          "tier": 3,
+          "name": "Cognizant",
+          "ilvl": 33,
+          "min": 3.0,
+          "max": 4.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": true,
+      "tags": [
+        "mana"
+      ]
+    },
+    {
+      "id": "explicit.increasedenergyshield",
+      "name": "IncreasedEnergyShield",
+      "textPattern": "# to maximum Energy Shield",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Incandescent",
+          "ilvl": 80,
+          "min": 80.0,
+          "max": 89.0
+        },
+        {
+          "tier": 2,
+          "name": "Scintillating",
+          "ilvl": 70,
+          "min": 71.0,
+          "max": 79.0
+        },
+        {
+          "tier": 3,
+          "name": "Dazzling",
+          "ilvl": 65,
+          "min": 62.0,
+          "max": 70.0
+        },
+        {
+          "tier": 4,
+          "name": "Blazing",
+          "ilvl": 54,
+          "min": 52.0,
+          "max": 61.0
+        },
+        {
+          "tier": 5,
+          "name": "Pulsing",
+          "ilvl": 46,
+          "min": 42.0,
+          "max": 51.0
+        },
+        {
+          "tier": 6,
+          "name": "Radiating",
+          "ilvl": 33,
+          "min": 34.0,
+          "max": 41.0
+        },
+        {
+          "tier": 7,
+          "name": "Glowing",
+          "ilvl": 25,
+          "min": 25.0,
+          "max": 33.0
+        },
+        {
+          "tier": 8,
+          "name": "Glittering",
+          "ilvl": 16,
+          "min": 21.0,
+          "max": 24.0
+        },
+        {
+          "tier": 9,
+          "name": "Glimmering",
+          "ilvl": 11,
+          "min": 15.0,
+          "max": 20.0
+        },
+        {
+          "tier": 10,
+          "name": "Shining",
+          "ilvl": 1,
+          "min": 8.0,
+          "max": 14.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.increasedphysicaldamagereductionratingpercent",
+      "name": "IncreasedPhysicalDamageReductionRatingPercent",
+      "textPattern": "#% increased Armour",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Impregnable",
+          "ilvl": 75,
+          "min": 45.0,
+          "max": 50.0
+        },
+        {
+          "tier": 2,
+          "name": "Girded",
+          "ilvl": 65,
+          "min": 39.0,
+          "max": 44.0
+        },
+        {
+          "tier": 3,
+          "name": "Thickened",
+          "ilvl": 54,
+          "min": 33.0,
+          "max": 38.0
+        },
+        {
+          "tier": 4,
+          "name": "Buttressed",
+          "ilvl": 46,
+          "min": 27.0,
+          "max": 32.0
+        },
+        {
+          "tier": 5,
+          "name": "Lobstered",
+          "ilvl": 33,
+          "min": 21.0,
+          "max": 26.0
+        },
+        {
+          "tier": 6,
+          "name": "Layered",
+          "ilvl": 16,
+          "min": 15.0,
+          "max": 20.0
+        },
+        {
+          "tier": 7,
+          "name": "Reinforced",
+          "ilvl": 2,
+          "min": 10.0,
+          "max": 14.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.evasionratingpercent",
+      "name": "EvasionRatingPercent",
+      "textPattern": "#% increased Evasion Rating",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Mirage's",
+          "ilvl": 77,
+          "min": 45.0,
+          "max": 50.0
+        },
+        {
+          "tier": 2,
+          "name": "Nightmare's",
+          "ilvl": 70,
+          "min": 39.0,
+          "max": 44.0
+        },
+        {
+          "tier": 3,
+          "name": "Phantasm's",
+          "ilvl": 54,
+          "min": 33.0,
+          "max": 38.0
+        },
+        {
+          "tier": 4,
+          "name": "Wraith's",
+          "ilvl": 46,
+          "min": 27.0,
+          "max": 32.0
+        },
+        {
+          "tier": 5,
+          "name": "Spectre's",
+          "ilvl": 33,
+          "min": 21.0,
+          "max": 26.0
+        },
+        {
+          "tier": 6,
+          "name": "Ghost's",
+          "ilvl": 16,
+          "min": 15.0,
+          "max": 20.0
+        },
+        {
+          "tier": 7,
+          "name": "Shade's",
+          "ilvl": 2,
+          "min": 10.0,
+          "max": 14.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.energyshieldpercent",
+      "name": "EnergyShieldPercent",
+      "textPattern": "#% increased maximum Energy Shield",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Unassailable",
+          "ilvl": 75,
+          "min": 45.0,
+          "max": 50.0
+        },
+        {
+          "tier": 2,
+          "name": "Indomitable",
+          "ilvl": 65,
+          "min": 39.0,
+          "max": 44.0
+        },
+        {
+          "tier": 3,
+          "name": "Dauntless",
+          "ilvl": 54,
+          "min": 33.0,
+          "max": 38.0
+        },
+        {
+          "tier": 4,
+          "name": "Fearless",
+          "ilvl": 46,
+          "min": 27.0,
+          "max": 32.0
+        },
+        {
+          "tier": 5,
+          "name": "Resolute",
+          "ilvl": 33,
+          "min": 21.0,
+          "max": 26.0
+        },
+        {
+          "tier": 6,
+          "name": "Strong-Willed",
+          "ilvl": 16,
+          "min": 15.0,
+          "max": 20.0
+        },
+        {
+          "tier": 7,
+          "name": "Protective",
+          "ilvl": 2,
+          "min": 10.0,
+          "max": 14.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.manaregeneration",
+      "name": "ManaRegeneration",
+      "textPattern": "#% increased Mana Regeneration Rate",
+      "itemClasses": [
+        "Amulet",
+        "Ring",
+        "Wand",
+        "Sceptre",
+        "Staff",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Nirvana",
+          "ilvl": 79,
+          "min": 60.0,
+          "max": 69.0
+        },
+        {
+          "tier": 2,
+          "name": "of Euphoria",
+          "ilvl": 55,
+          "min": 50.0,
+          "max": 59.0
+        },
+        {
+          "tier": 3,
+          "name": "of Bliss",
+          "ilvl": 42,
+          "min": 40.0,
+          "max": 49.0
+        },
+        {
+          "tier": 4,
+          "name": "of Elation",
+          "ilvl": 29,
+          "min": 30.0,
+          "max": 39.0
+        },
+        {
+          "tier": 5,
+          "name": "of Joy",
+          "ilvl": 18,
+          "min": 20.0,
+          "max": 29.0
+        },
+        {
+          "tier": 6,
+          "name": "of Excitement",
+          "ilvl": 1,
+          "min": 10.0,
+          "max": 19.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": false,
+      "tags": [
+        "mana"
+      ]
+    },
+    {
+      "id": "explicit.increasedcastspeed",
+      "name": "IncreasedCastSpeed",
+      "textPattern": "#% increased Cast Speed",
+      "itemClasses": [
+        "Amulet",
+        "Ring",
+        "Wand",
+        "Sceptre",
+        "Staff",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Legerdemain",
+          "ilvl": 60,
+          "min": 25.0,
+          "max": 28.0
+        },
+        {
+          "tier": 2,
+          "name": "of Sortilege",
+          "ilvl": 45,
+          "min": 21.0,
+          "max": 24.0
+        },
+        {
+          "tier": 3,
+          "name": "of Expertise",
+          "ilvl": 30,
+          "min": 17.0,
+          "max": 20.0
+        },
+        {
+          "tier": 4,
+          "name": "of Nimbleness",
+          "ilvl": 15,
+          "min": 13.0,
+          "max": 16.0
+        },
+        {
+          "tier": 5,
+          "name": "of Talent",
+          "ilvl": 1,
+          "min": 9.0,
+          "max": 12.0
+        }
+      ],
+      "category": "speed",
+      "isPrefix": false,
+      "tags": [
+        "caster",
+        "speed"
+      ]
+    },
+    {
+      "id": "explicit.damagetakengainedaslife",
+      "name": "DamageTakenGainedAsLife",
+      "textPattern": "#% of Damage taken Recouped as Life",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Fleshbinding",
+          "ilvl": 79,
+          "min": 22.0,
+          "max": 24.0
+        },
+        {
+          "tier": 2,
+          "name": "of Suturing",
+          "ilvl": 68,
+          "min": 19.0,
+          "max": 21.0
+        },
+        {
+          "tier": 3,
+          "name": "of Stitching",
+          "ilvl": 56,
+          "min": 16.0,
+          "max": 18.0
+        },
+        {
+          "tier": 4,
+          "name": "of Bandaging",
+          "ilvl": 44,
+          "min": 13.0,
+          "max": 15.0
+        },
+        {
+          "tier": 5,
+          "name": "of Mending",
+          "ilvl": 30,
+          "min": 10.0,
+          "max": 12.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": false,
+      "tags": [
+        "life"
+      ]
+    },
+    {
+      "id": "explicit.percentdamagegoestomana",
+      "name": "PercentDamageGoesToMana",
+      "textPattern": "#% of Damage taken Recouped as Mana",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Zen",
+          "ilvl": 80,
+          "min": 22.0,
+          "max": 24.0
+        },
+        {
+          "tier": 2,
+          "name": "of Serenity",
+          "ilvl": 69,
+          "min": 19.0,
+          "max": 21.0
+        },
+        {
+          "tier": 3,
+          "name": "of Tranquility",
+          "ilvl": 57,
+          "min": 16.0,
+          "max": 18.0
+        },
+        {
+          "tier": 4,
+          "name": "of Solace",
+          "ilvl": 45,
+          "min": 13.0,
+          "max": 15.0
+        },
+        {
+          "tier": 5,
+          "name": "of Reprieve",
+          "ilvl": 31,
+          "min": 10.0,
+          "max": 12.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": false,
+      "tags": [
+        "life",
+        "mana"
+      ]
+    },
+    {
+      "id": "explicit.spelldamage",
+      "name": "SpellDamage",
+      "textPattern": "#% increased Spell Damage",
+      "itemClasses": [
+        "Amulet"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Incanter's",
+          "ilvl": 75,
+          "min": 27.0,
+          "max": 30.0
+        },
+        {
+          "tier": 2,
+          "name": "Occultist's",
+          "ilvl": 60,
+          "min": 23.0,
+          "max": 26.0
+        },
+        {
+          "tier": 3,
+          "name": "Professor's",
+          "ilvl": 46,
+          "min": 18.0,
+          "max": 22.0
+        },
+        {
+          "tier": 4,
+          "name": "Scholar's",
+          "ilvl": 33,
+          "min": 13.0,
+          "max": 17.0
+        },
+        {
+          "tier": 5,
+          "name": "Adept's",
+          "ilvl": 16,
+          "min": 8.0,
+          "max": 12.0
+        },
+        {
+          "tier": 6,
+          "name": "Apprentice's",
+          "ilvl": 1,
+          "min": 3.0,
+          "max": 7.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "caster"
+      ]
+    },
+    {
+      "id": "explicit.increasedevasionrating",
+      "name": "IncreasedEvasionRating",
+      "textPattern": "# to Evasion Rating",
+      "itemClasses": [
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Adroit",
+          "ilvl": 70,
+          "min": 177.0,
+          "max": 203.0
+        },
+        {
+          "tier": 2,
+          "name": "Elusory",
+          "ilvl": 65,
+          "min": 152.0,
+          "max": 176.0
+        },
+        {
+          "tier": 3,
+          "name": "Vaporous",
+          "ilvl": 54,
+          "min": 124.0,
+          "max": 151.0
+        },
+        {
+          "tier": 4,
+          "name": "Phased",
+          "ilvl": 46,
+          "min": 94.0,
+          "max": 123.0
+        },
+        {
+          "tier": 5,
+          "name": "Blurred",
+          "ilvl": 33,
+          "min": 70.0,
+          "max": 93.0
+        },
+        {
+          "tier": 6,
+          "name": "Fleet",
+          "ilvl": 25,
+          "min": 45.0,
+          "max": 69.0
+        },
+        {
+          "tier": 7,
+          "name": "Acrobat's",
+          "ilvl": 16,
+          "min": 34.0,
+          "max": 44.0
+        },
+        {
+          "tier": 8,
+          "name": "Dancer's",
+          "ilvl": 11,
+          "min": 16.0,
+          "max": 33.0
+        },
+        {
+          "tier": 9,
+          "name": "Agile",
+          "ilvl": 1,
+          "min": 8.0,
+          "max": 15.0
+        }
+      ],
+      "category": "defense",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.lightradiusandmanaregeneration",
+      "name": "LightRadiusAndManaRegeneration",
+      "textPattern": "#% increased Mana Regeneration Rate15% increased Light Radius",
+      "itemClasses": [
+        "Ring",
+        "Wand",
+        "Sceptre",
+        "Staff"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Hearth",
+          "ilvl": 30,
+          "min": 18.0,
+          "max": 22.0
+        },
+        {
+          "tier": 2,
+          "name": "of Kindling",
+          "ilvl": 15,
+          "min": 13.0,
+          "max": 17.0
+        },
+        {
+          "tier": 3,
+          "name": "of Warmth",
+          "ilvl": 8,
+          "min": 8.0,
+          "max": 12.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": false,
+      "tags": [
+        "mana"
+      ]
+    },
+    {
+      "id": "explicit.firedamagepercentage",
+      "name": "FireDamagePercentage",
+      "textPattern": "#% increased Fire Damage",
+      "itemClasses": [
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Magmatic",
+          "ilvl": 75,
+          "min": 27.0,
+          "max": 30.0
+        },
+        {
+          "tier": 2,
+          "name": "Volcanic",
+          "ilvl": 65,
+          "min": 23.0,
+          "max": 26.0
+        },
+        {
+          "tier": 3,
+          "name": "Cauterising",
+          "ilvl": 46,
+          "min": 18.0,
+          "max": 22.0
+        },
+        {
+          "tier": 4,
+          "name": "Blistering",
+          "ilvl": 33,
+          "min": 13.0,
+          "max": 17.0
+        },
+        {
+          "tier": 5,
+          "name": "Sizzling",
+          "ilvl": 16,
+          "min": 8.0,
+          "max": 12.0
+        },
+        {
+          "tier": 6,
+          "name": "Searing",
+          "ilvl": 8,
+          "min": 3.0,
+          "max": 7.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "fire"
+      ]
+    },
+    {
+      "id": "explicit.colddamagepercentage",
+      "name": "ColdDamagePercentage",
+      "textPattern": "#% increased Cold Damage",
+      "itemClasses": [
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Crystalline",
+          "ilvl": 75,
+          "min": 27.0,
+          "max": 30.0
+        },
+        {
+          "tier": 2,
+          "name": "Hailing",
+          "ilvl": 65,
+          "min": 23.0,
+          "max": 26.0
+        },
+        {
+          "tier": 3,
+          "name": "Snowy",
+          "ilvl": 46,
+          "min": 18.0,
+          "max": 22.0
+        },
+        {
+          "tier": 4,
+          "name": "Alpine",
+          "ilvl": 33,
+          "min": 13.0,
+          "max": 17.0
+        },
+        {
+          "tier": 5,
+          "name": "Biting",
+          "ilvl": 16,
+          "min": 8.0,
+          "max": 12.0
+        },
+        {
+          "tier": 6,
+          "name": "Bitter",
+          "ilvl": 8,
+          "min": 3.0,
+          "max": 7.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "cold"
+      ]
+    },
+    {
+      "id": "explicit.lightningdamagepercentage",
+      "name": "LightningDamagePercentage",
+      "textPattern": "#% increased Lightning Damage",
+      "itemClasses": [
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Smiting",
+          "ilvl": 75,
+          "min": 27.0,
+          "max": 30.0
+        },
+        {
+          "tier": 2,
+          "name": "Striking",
+          "ilvl": 65,
+          "min": 23.0,
+          "max": 26.0
+        },
+        {
+          "tier": 3,
+          "name": "Coursing",
+          "ilvl": 46,
+          "min": 18.0,
+          "max": 22.0
+        },
+        {
+          "tier": 4,
+          "name": "Bolting",
+          "ilvl": 33,
+          "min": 13.0,
+          "max": 17.0
+        },
+        {
+          "tier": 5,
+          "name": "Hissing",
+          "ilvl": 16,
+          "min": 8.0,
+          "max": 12.0
+        },
+        {
+          "tier": 6,
+          "name": "Charged",
+          "ilvl": 8,
+          "min": 3.0,
+          "max": 7.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "lightning"
+      ]
+    },
+    {
+      "id": "explicit.increasedchaosdamage",
+      "name": "IncreasedChaosDamage",
+      "textPattern": "#% increased Chaos Damage",
+      "itemClasses": [
+        "Ring"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Vile",
+          "ilvl": 75,
+          "min": 27.0,
+          "max": 30.0
+        },
+        {
+          "tier": 2,
+          "name": "Malignant",
+          "ilvl": 65,
+          "min": 23.0,
+          "max": 26.0
+        },
+        {
+          "tier": 3,
+          "name": "Darkened",
+          "ilvl": 46,
+          "min": 18.0,
+          "max": 22.0
+        },
+        {
+          "tier": 4,
+          "name": "Clouded",
+          "ilvl": 33,
+          "min": 13.0,
+          "max": 17.0
+        },
+        {
+          "tier": 5,
+          "name": "Tainted",
+          "ilvl": 16,
+          "min": 8.0,
+          "max": 12.0
+        },
+        {
+          "tier": 6,
+          "name": "Impure",
+          "ilvl": 8,
+          "min": 3.0,
+          "max": 7.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "chaos"
+      ]
+    },
+    {
+      "id": "explicit.increasedphysicaldamagereductionrating",
+      "name": "IncreasedPhysicalDamageReductionRating",
+      "textPattern": "# to Armour",
+      "itemClasses": [
+        "Belt"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Unmoving",
+          "ilvl": 80,
+          "min": 225.0,
+          "max": 255.0
+        },
+        {
+          "tier": 2,
+          "name": "Abating",
+          "ilvl": 70,
+          "min": 196.0,
+          "max": 224.0
+        },
+        {
+          "tier": 3,
+          "name": "Enveloped",
+          "ilvl": 65,
+          "min": 169.0,
+          "max": 195.0
+        },
+        {
+          "tier": 4,
+          "name": "Encased",
+          "ilvl": 54,
+          "min": 139.0,
+          "max": 168.0
+        },
+        {
+          "tier": 5,
+          "name": "Carapaced",
+          "ilvl": 46,
+          "min": 107.0,
+          "max": 138.0
+        },
+        {
+          "tier": 6,
+          "name": "Plated",
+          "ilvl": 33,
+          "min": 82.0,
+          "max": 106.0
+        },
+        {
+          "tier": 7,
+          "name": "Fortified",
+          "ilvl": 25,
+          "min": 55.0,
+          "max": 81.0
+        },
+        {
+          "tier": 8,
+          "name": "Ribbed",
+          "ilvl": 16,
+          "min": 43.0,
+          "max": 54.0
+        },
+        {
+          "tier": 9,
+          "name": "Studded",
+          "ilvl": 11,
+          "min": 23.0,
+          "max": 42.0
+        },
+        {
+          "tier": 10,
+          "name": "Lacquered",
+          "ilvl": 1,
+          "min": 12.0,
+          "max": 22.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "defences"
+      ]
+    },
+    {
+      "id": "explicit.beltflaskrecoveryrate",
+      "name": "BeltFlaskRecoveryRate",
+      "textPattern": "#% increased Flask Life Recovery rate",
+      "itemClasses": [
+        "Belt"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Regenerating",
+          "ilvl": 75,
+          "min": 35.0,
+          "max": 40.0
+        },
+        {
+          "tier": 2,
+          "name": "Inspiring",
+          "ilvl": 63,
+          "min": 35.0,
+          "max": 40.0
+        },
+        {
+          "tier": 3,
+          "name": "Rejuvenating",
+          "ilvl": 60,
+          "min": 29.0,
+          "max": 34.0
+        },
+        {
+          "tier": 4,
+          "name": "Galvanizing",
+          "ilvl": 54,
+          "min": 29.0,
+          "max": 34.0
+        },
+        {
+          "tier": 5,
+          "name": "Refreshing",
+          "ilvl": 46,
+          "min": 23.0,
+          "max": 28.0
+        },
+        {
+          "tier": 6,
+          "name": "Exciting",
+          "ilvl": 36,
+          "min": 23.0,
+          "max": 28.0
+        },
+        {
+          "tier": 7,
+          "name": "Renewing",
+          "ilvl": 33,
+          "min": 17.0,
+          "max": 22.0
+        },
+        {
+          "tier": 8,
+          "name": "Heartening",
+          "ilvl": 26,
+          "min": 17.0,
+          "max": 22.0
+        },
+        {
+          "tier": 9,
+          "name": "Recovering",
+          "ilvl": 16,
+          "min": 11.0,
+          "max": 16.0
+        },
+        {
+          "tier": 10,
+          "name": "Stirring",
+          "ilvl": 11,
+          "min": 11.0,
+          "max": 16.0
+        },
+        {
+          "tier": 11,
+          "name": "Affecting",
+          "ilvl": 5,
+          "min": 5.0,
+          "max": 10.0
+        },
+        {
+          "tier": 12,
+          "name": "Restoring",
+          "ilvl": 1,
+          "min": 5.0,
+          "max": 10.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": true,
+      "tags": [
+        "life"
+      ]
+    },
+    {
+      "id": "explicit.beltcharmduration",
+      "name": "BeltCharmDuration",
+      "textPattern": "#% increased Charm Effect Duration",
+      "itemClasses": [
+        "Belt"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Revolutionary",
+          "ilvl": 75,
+          "min": 28.0,
+          "max": 33.0
+        },
+        {
+          "tier": 2,
+          "name": "Innovative",
+          "ilvl": 60,
+          "min": 22.0,
+          "max": 27.0
+        },
+        {
+          "tier": 3,
+          "name": "Progressive",
+          "ilvl": 46,
+          "min": 16.0,
+          "max": 21.0
+        },
+        {
+          "tier": 4,
+          "name": "Transformative",
+          "ilvl": 33,
+          "min": 10.0,
+          "max": 15.0
+        },
+        {
+          "tier": 5,
+          "name": "Conservative",
+          "ilvl": 8,
+          "min": 4.0,
+          "max": 9.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": true,
+      "tags": []
+    },
+    {
+      "id": "explicit.beltflaskchargesgained",
+      "name": "BeltFlaskChargesGained",
+      "textPattern": "#% increased Flask Charges gained",
+      "itemClasses": [
+        "Belt"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Overflowing",
+          "ilvl": 81,
+          "min": 35.0,
+          "max": 40.0
+        },
+        {
+          "tier": 2,
+          "name": "of Brimming",
+          "ilvl": 70,
+          "min": 29.0,
+          "max": 34.0
+        },
+        {
+          "tier": 3,
+          "name": "of Pouring",
+          "ilvl": 48,
+          "min": 23.0,
+          "max": 28.0
+        },
+        {
+          "tier": 4,
+          "name": "of Replenishing",
+          "ilvl": 32,
+          "min": 17.0,
+          "max": 22.0
+        },
+        {
+          "tier": 5,
+          "name": "of Restocking",
+          "ilvl": 16,
+          "min": 11.0,
+          "max": 16.0
+        },
+        {
+          "tier": 6,
+          "name": "of Refilling",
+          "ilvl": 2,
+          "min": 5.0,
+          "max": 10.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.beltflaskchargesused",
+      "name": "BeltFlaskChargesUsed",
+      "textPattern": "#% reduced Flask Charges used",
+      "itemClasses": [
+        "Belt"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Nourishing",
+          "ilvl": 81,
+          "min": 23.0,
+          "max": 25.0
+        },
+        {
+          "tier": 2,
+          "name": "of Reveling",
+          "ilvl": 72,
+          "min": 20.0,
+          "max": 22.0
+        },
+        {
+          "tier": 3,
+          "name": "of Savouring",
+          "ilvl": 50,
+          "min": 17.0,
+          "max": 19.0
+        },
+        {
+          "tier": 4,
+          "name": "of Relishing",
+          "ilvl": 33,
+          "min": 14.0,
+          "max": 16.0
+        },
+        {
+          "tier": 5,
+          "name": "of Imbibing",
+          "ilvl": 18,
+          "min": 11.0,
+          "max": 13.0
+        },
+        {
+          "tier": 6,
+          "name": "of Sipping",
+          "ilvl": 3,
+          "min": 8.0,
+          "max": 10.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.beltcharmchargesgained",
+      "name": "BeltCharmChargesGained",
+      "textPattern": "#% increased Charm Charges gained",
+      "itemClasses": [
+        "Belt"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Abundance",
+          "ilvl": 81,
+          "min": 35.0,
+          "max": 40.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Harvest",
+          "ilvl": 70,
+          "min": 29.0,
+          "max": 34.0
+        },
+        {
+          "tier": 3,
+          "name": "of Bounty",
+          "ilvl": 48,
+          "min": 23.0,
+          "max": 28.0
+        },
+        {
+          "tier": 4,
+          "name": "of Fertility",
+          "ilvl": 32,
+          "min": 17.0,
+          "max": 22.0
+        },
+        {
+          "tier": 5,
+          "name": "of Surplus",
+          "ilvl": 16,
+          "min": 11.0,
+          "max": 16.0
+        },
+        {
+          "tier": 6,
+          "name": "of Plenty",
+          "ilvl": 2,
+          "min": 5.0,
+          "max": 10.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.beltcharmchargesused",
+      "name": "BeltCharmChargesUsed",
+      "textPattern": "#% reduced Charm Charges used",
+      "itemClasses": [
+        "Belt"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Scarcity",
+          "ilvl": 81,
+          "min": 23.0,
+          "max": 25.0
+        },
+        {
+          "tier": 2,
+          "name": "of Economy",
+          "ilvl": 72,
+          "min": 20.0,
+          "max": 22.0
+        },
+        {
+          "tier": 3,
+          "name": "of Restraint",
+          "ilvl": 50,
+          "min": 17.0,
+          "max": 19.0
+        },
+        {
+          "tier": 4,
+          "name": "of Temperance",
+          "ilvl": 33,
+          "min": 14.0,
+          "max": 16.0
+        },
+        {
+          "tier": 5,
+          "name": "of Frugality",
+          "ilvl": 18,
+          "min": 11.0,
+          "max": 13.0
+        },
+        {
+          "tier": 6,
+          "name": "of Austerity",
+          "ilvl": 3,
+          "min": 8.0,
+          "max": 10.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.localphysicaldamagepercent",
+      "name": "LocalPhysicalDamagePercent",
+      "textPattern": "#% increased Physical Damage",
+      "itemClasses": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Merciless",
+          "ilvl": 82,
+          "min": 170.0,
+          "max": 179.0
+        },
+        {
+          "tier": 2,
+          "name": "Tyrannical",
+          "ilvl": 75,
+          "min": 155.0,
+          "max": 169.0
+        },
+        {
+          "tier": 3,
+          "name": "Cruel",
+          "ilvl": 60,
+          "min": 135.0,
+          "max": 154.0
+        },
+        {
+          "tier": 4,
+          "name": "Bloodthirsty",
+          "ilvl": 46,
+          "min": 110.0,
+          "max": 134.0
+        },
+        {
+          "tier": 5,
+          "name": "Vicious",
+          "ilvl": 33,
+          "min": 85.0,
+          "max": 109.0
+        },
+        {
+          "tier": 6,
+          "name": "Wicked",
+          "ilvl": 16,
+          "min": 65.0,
+          "max": 84.0
+        },
+        {
+          "tier": 7,
+          "name": "Serrated",
+          "ilvl": 8,
+          "min": 50.0,
+          "max": 64.0
+        },
+        {
+          "tier": 8,
+          "name": "Heavy",
+          "ilvl": 1,
+          "min": 40.0,
+          "max": 49.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "physical",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.localincreasedphysicaldamagepercentandaccuracyrating",
+      "name": "LocalIncreasedPhysicalDamagePercentAndAccuracyRating",
+      "textPattern": "#% increased Physical Damage# to Accuracy Rating",
+      "itemClasses": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Dictator's",
+          "ilvl": 81,
+          "min": 75.0,
+          "max": 79.0
+        },
+        {
+          "tier": 2,
+          "name": "Emperor's",
+          "ilvl": 70,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 3,
+          "name": "Conqueror's",
+          "ilvl": 65,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 4,
+          "name": "Champion's",
+          "ilvl": 54,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 5,
+          "name": "Mercenary's",
+          "ilvl": 38,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 6,
+          "name": "Reaver's",
+          "ilvl": 23,
+          "min": 25.0,
+          "max": 34.0
+        },
+        {
+          "tier": 7,
+          "name": "Journeyman's",
+          "ilvl": 11,
+          "min": 20.0,
+          "max": 24.0
+        },
+        {
+          "tier": 8,
+          "name": "Squire's",
+          "ilvl": 1,
+          "min": 15.0,
+          "max": 19.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "physical",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.stundurationincreasepercent",
+      "name": "StunDurationIncreasePercent",
+      "textPattern": "#% increased Stun Duration",
+      "itemClasses": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Concussion",
+          "ilvl": 71,
+          "min": 27.0,
+          "max": 30.0
+        },
+        {
+          "tier": 2,
+          "name": "of Staggering",
+          "ilvl": 58,
+          "min": 23.0,
+          "max": 26.0
+        },
+        {
+          "tier": 3,
+          "name": "of Slamming",
+          "ilvl": 44,
+          "min": 20.0,
+          "max": 22.0
+        },
+        {
+          "tier": 4,
+          "name": "of Stunning",
+          "ilvl": 30,
+          "min": 17.0,
+          "max": 19.0
+        },
+        {
+          "tier": 5,
+          "name": "of Dazing",
+          "ilvl": 18,
+          "min": 14.0,
+          "max": 16.0
+        },
+        {
+          "tier": 6,
+          "name": "of Impact",
+          "ilvl": 5,
+          "min": 11.0,
+          "max": 13.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.stundamageincrease",
+      "name": "StunDamageIncrease",
+      "textPattern": "Causes #% increased Stun Buildup",
+      "itemClasses": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Champion",
+          "ilvl": 74,
+          "min": 71.0,
+          "max": 80.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Gladiator",
+          "ilvl": 58,
+          "min": 61.0,
+          "max": 70.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Combatant",
+          "ilvl": 44,
+          "min": 51.0,
+          "max": 60.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Boxer",
+          "ilvl": 30,
+          "min": 41.0,
+          "max": 50.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Brawler",
+          "ilvl": 20,
+          "min": 31.0,
+          "max": 40.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Pugilist",
+          "ilvl": 5,
+          "min": 21.0,
+          "max": 30.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.increasedweaponelementaldamagepercent",
+      "name": "IncreasedWeaponElementalDamagePercent",
+      "textPattern": "#% increased Elemental Damage with Attacks",
+      "itemClasses": [
+        "Claw",
+        "Dagger",
+        "One Hand Sword",
+        "Two Hand Sword",
+        "One Hand Axe",
+        "Two Hand Axe",
+        "One Hand Mace",
+        "Two Hand Mace",
+        "Spear",
+        "Flail",
+        "Bow",
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Devastating",
+          "ilvl": 81,
+          "min": 87.0,
+          "max": 100.0
+        },
+        {
+          "tier": 2,
+          "name": "Overpowering",
+          "ilvl": 60,
+          "min": 73.0,
+          "max": 86.0
+        },
+        {
+          "tier": 3,
+          "name": "Unleashed",
+          "ilvl": 46,
+          "min": 63.0,
+          "max": 72.0
+        },
+        {
+          "tier": 4,
+          "name": "Empowering",
+          "ilvl": 33,
+          "min": 53.0,
+          "max": 62.0
+        },
+        {
+          "tier": 5,
+          "name": "Infusing",
+          "ilvl": 16,
+          "min": 36.0,
+          "max": 52.0
+        },
+        {
+          "tier": 6,
+          "name": "Catalysing",
+          "ilvl": 4,
+          "min": 19.0,
+          "max": 35.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.weaponcasterdamageprefix",
+      "name": "WeaponCasterDamagePrefix",
+      "textPattern": "#% increased Spell Damage",
+      "itemClasses": [
+        "Wand",
+        "Staff",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Runic",
+          "ilvl": 80,
+          "min": 105.0,
+          "max": 119.0
+        },
+        {
+          "tier": 2,
+          "name": "Glyphic",
+          "ilvl": 70,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 3,
+          "name": "Incanter's",
+          "ilvl": 60,
+          "min": 75.0,
+          "max": 89.0
+        },
+        {
+          "tier": 4,
+          "name": "Occultist's",
+          "ilvl": 46,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 5,
+          "name": "Professor's",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 6,
+          "name": "Scholar's",
+          "ilvl": 16,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 7,
+          "name": "Adept's",
+          "ilvl": 8,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 8,
+          "name": "Apprentice's",
+          "ilvl": 1,
+          "min": 25.0,
+          "max": 34.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "caster"
+      ]
+    },
+    {
+      "id": "explicit.spelldamageandmana",
+      "name": "SpellDamageAndMana",
+      "textPattern": "#% increased Spell Damage# to maximum Mana",
+      "itemClasses": [
+        "Wand",
+        "Staff"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Lich's",
+          "ilvl": 80,
+          "min": 45.0,
+          "max": 49.0
+        },
+        {
+          "tier": 2,
+          "name": "Archmage's",
+          "ilvl": 60,
+          "min": 40.0,
+          "max": 44.0
+        },
+        {
+          "tier": 3,
+          "name": "Mage's",
+          "ilvl": 46,
+          "min": 35.0,
+          "max": 39.0
+        },
+        {
+          "tier": 4,
+          "name": "Warlock's",
+          "ilvl": 38,
+          "min": 30.0,
+          "max": 34.0
+        },
+        {
+          "tier": 5,
+          "name": "Wizard's",
+          "ilvl": 23,
+          "min": 25.0,
+          "max": 29.0
+        },
+        {
+          "tier": 6,
+          "name": "Conjuror's",
+          "ilvl": 11,
+          "min": 20.0,
+          "max": 24.0
+        },
+        {
+          "tier": 7,
+          "name": "Caster's",
+          "ilvl": 2,
+          "min": 15.0,
+          "max": 19.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": true,
+      "tags": [
+        "mana",
+        "damage",
+        "caster"
+      ]
+    },
+    {
+      "id": "explicit.weapondamagetypeprefix",
+      "name": "WeaponDamageTypePrefix",
+      "textPattern": "#% increased Spell Physical Damage",
+      "itemClasses": [
+        "Wand",
+        "Staff",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Torturer's",
+          "ilvl": 81,
+          "min": 105.0,
+          "max": 119.0
+        },
+        {
+          "tier": 2,
+          "name": "Malevolent",
+          "ilvl": 81,
+          "min": 105.0,
+          "max": 119.0
+        },
+        {
+          "tier": 3,
+          "name": "Electromancer's",
+          "ilvl": 81,
+          "min": 105.0,
+          "max": 119.0
+        },
+        {
+          "tier": 4,
+          "name": "Cryomancer's",
+          "ilvl": 81,
+          "min": 105.0,
+          "max": 119.0
+        },
+        {
+          "tier": 5,
+          "name": "Pyromancer's",
+          "ilvl": 81,
+          "min": 105.0,
+          "max": 119.0
+        },
+        {
+          "tier": 6,
+          "name": "Oppressor's",
+          "ilvl": 70,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 7,
+          "name": "Twisted",
+          "ilvl": 70,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 8,
+          "name": "Ionising",
+          "ilvl": 70,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 9,
+          "name": "Crystalline",
+          "ilvl": 70,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 10,
+          "name": "Volcanic",
+          "ilvl": 70,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 11,
+          "name": "Agonising",
+          "ilvl": 60,
+          "min": 75.0,
+          "max": 89.0
+        },
+        {
+          "tier": 12,
+          "name": "Vile",
+          "ilvl": 60,
+          "min": 75.0,
+          "max": 89.0
+        },
+        {
+          "tier": 13,
+          "name": "Smiting",
+          "ilvl": 60,
+          "min": 75.0,
+          "max": 89.0
+        },
+        {
+          "tier": 14,
+          "name": "Arctic",
+          "ilvl": 60,
+          "min": 75.0,
+          "max": 89.0
+        },
+        {
+          "tier": 15,
+          "name": "Magmatic",
+          "ilvl": 60,
+          "min": 75.0,
+          "max": 89.0
+        },
+        {
+          "tier": 16,
+          "name": "Pitiless",
+          "ilvl": 46,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 17,
+          "name": "Malignant",
+          "ilvl": 46,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 18,
+          "name": "Striking",
+          "ilvl": 46,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 19,
+          "name": "Hailing",
+          "ilvl": 46,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 20,
+          "name": "Smoldering",
+          "ilvl": 46,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 21,
+          "name": "Sadistic",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 22,
+          "name": "Darkened",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 23,
+          "name": "Coursing",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 24,
+          "name": "Snowy",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 25,
+          "name": "Cauterising",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 26,
+          "name": "Vengeful",
+          "ilvl": 16,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 27,
+          "name": "Clouded",
+          "ilvl": 16,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 28,
+          "name": "Bolting",
+          "ilvl": 16,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 29,
+          "name": "Alpine",
+          "ilvl": 16,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 30,
+          "name": "Blistering",
+          "ilvl": 16,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 31,
+          "name": "Unforgiving",
+          "ilvl": 8,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 32,
+          "name": "Tainted",
+          "ilvl": 8,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 33,
+          "name": "Hissing",
+          "ilvl": 8,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 34,
+          "name": "Biting",
+          "ilvl": 8,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 35,
+          "name": "Sizzling",
+          "ilvl": 8,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 36,
+          "name": "Punishing",
+          "ilvl": 2,
+          "min": 25.0,
+          "max": 34.0
+        },
+        {
+          "tier": 37,
+          "name": "Impure",
+          "ilvl": 2,
+          "min": 25.0,
+          "max": 34.0
+        },
+        {
+          "tier": 38,
+          "name": "Charged",
+          "ilvl": 2,
+          "min": 25.0,
+          "max": 34.0
+        },
+        {
+          "tier": 39,
+          "name": "Bitter",
+          "ilvl": 2,
+          "min": 25.0,
+          "max": 34.0
+        },
+        {
+          "tier": 40,
+          "name": "Searing",
+          "ilvl": 2,
+          "min": 25.0,
+          "max": 34.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage",
+        "elemental",
+        "fire"
+      ]
+    },
+    {
+      "id": "explicit.spellcriticalstrikechanceincrease",
+      "name": "SpellCriticalStrikeChanceIncrease",
+      "textPattern": "#% increased Critical Hit Chance for Spells",
+      "itemClasses": [
+        "Wand",
+        "Staff",
+        "Focus"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Unmaking",
+          "ilvl": 76,
+          "min": 60.0,
+          "max": 73.0
+        },
+        {
+          "tier": 2,
+          "name": "of Ruin",
+          "ilvl": 59,
+          "min": 54.0,
+          "max": 59.0
+        },
+        {
+          "tier": 3,
+          "name": "of Calamity",
+          "ilvl": 41,
+          "min": 47.0,
+          "max": 53.0
+        },
+        {
+          "tier": 4,
+          "name": "of Disaster",
+          "ilvl": 28,
+          "min": 40.0,
+          "max": 46.0
+        },
+        {
+          "tier": 5,
+          "name": "of Havoc",
+          "ilvl": 21,
+          "min": 34.0,
+          "max": 39.0
+        },
+        {
+          "tier": 6,
+          "name": "of Menace",
+          "ilvl": 11,
+          "min": 27.0,
+          "max": 33.0
+        }
+      ],
+      "category": "critical",
+      "isPrefix": false,
+      "tags": [
+        "caster",
+        "critical"
+      ]
+    },
+    {
+      "id": "explicit.ignitechanceincrease",
+      "name": "IgniteChanceIncrease",
+      "textPattern": "#% increased Flammability Magnitude",
+      "itemClasses": [
+        "Wand",
+        "Staff"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Conflagration",
+          "ilvl": 75,
+          "min": 91.0,
+          "max": 100.0
+        },
+        {
+          "tier": 2,
+          "name": "of Combustion",
+          "ilvl": 60,
+          "min": 81.0,
+          "max": 90.0
+        },
+        {
+          "tier": 3,
+          "name": "of Incineration",
+          "ilvl": 45,
+          "min": 71.0,
+          "max": 80.0
+        },
+        {
+          "tier": 4,
+          "name": "of Scorching",
+          "ilvl": 30,
+          "min": 61.0,
+          "max": 70.0
+        },
+        {
+          "tier": 5,
+          "name": "of Ignition",
+          "ilvl": 15,
+          "min": 51.0,
+          "max": 60.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.freezedamageincrease",
+      "name": "FreezeDamageIncrease",
+      "textPattern": "#% increased Freeze Buildup",
+      "itemClasses": [
+        "Wand",
+        "Staff"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Arctic",
+          "ilvl": 75,
+          "min": 71.0,
+          "max": 80.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Hyperboreal",
+          "ilvl": 60,
+          "min": 61.0,
+          "max": 70.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Glacier",
+          "ilvl": 45,
+          "min": 51.0,
+          "max": 60.0
+        },
+        {
+          "tier": 4,
+          "name": "of Bleakness",
+          "ilvl": 30,
+          "min": 41.0,
+          "max": 50.0
+        },
+        {
+          "tier": 5,
+          "name": "of Freezing",
+          "ilvl": 15,
+          "min": 31.0,
+          "max": 40.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.shockchanceincrease",
+      "name": "ShockChanceIncrease",
+      "textPattern": "#% increased chance to Shock",
+      "itemClasses": [
+        "Wand",
+        "Staff"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Thunderbolt",
+          "ilvl": 75,
+          "min": 91.0,
+          "max": 100.0
+        },
+        {
+          "tier": 2,
+          "name": "of Voltages",
+          "ilvl": 60,
+          "min": 81.0,
+          "max": 90.0
+        },
+        {
+          "tier": 3,
+          "name": "of Electrocution",
+          "ilvl": 45,
+          "min": 71.0,
+          "max": 80.0
+        },
+        {
+          "tier": 4,
+          "name": "of Zapping",
+          "ilvl": 30,
+          "min": 61.0,
+          "max": 70.0
+        },
+        {
+          "tier": 5,
+          "name": "of Shocking",
+          "ilvl": 15,
+          "min": 51.0,
+          "max": 60.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.alldamage",
+      "name": "AllDamage",
+      "textPattern": "Allies in your Presence deal #% increased Damage",
+      "itemClasses": [
+        "Sceptre"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Empowering",
+          "ilvl": 82,
+          "min": 105.0,
+          "max": 119.0
+        },
+        {
+          "tier": 2,
+          "name": "Inspirational",
+          "ilvl": 70,
+          "min": 90.0,
+          "max": 104.0
+        },
+        {
+          "tier": 3,
+          "name": "Motivating",
+          "ilvl": 60,
+          "min": 75.0,
+          "max": 89.0
+        },
+        {
+          "tier": 4,
+          "name": "Persuasive",
+          "ilvl": 46,
+          "min": 65.0,
+          "max": 74.0
+        },
+        {
+          "tier": 5,
+          "name": "Provocative",
+          "ilvl": 33,
+          "min": 55.0,
+          "max": 64.0
+        },
+        {
+          "tier": 6,
+          "name": "Instigative",
+          "ilvl": 16,
+          "min": 45.0,
+          "max": 54.0
+        },
+        {
+          "tier": 7,
+          "name": "Agitative",
+          "ilvl": 8,
+          "min": 35.0,
+          "max": 44.0
+        },
+        {
+          "tier": 8,
+          "name": "Coercive",
+          "ilvl": 1,
+          "min": 25.0,
+          "max": 34.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage"
+      ]
+    },
+    {
+      "id": "explicit.localincreasedspiritpercent",
+      "name": "LocalIncreasedSpiritPercent",
+      "textPattern": "#% increased Spirit",
+      "itemClasses": [
+        "Sceptre"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "King's",
+          "ilvl": 82,
+          "min": 61.0,
+          "max": 65.0
+        },
+        {
+          "tier": 2,
+          "name": "Prince's",
+          "ilvl": 75,
+          "min": 56.0,
+          "max": 60.0
+        },
+        {
+          "tier": 3,
+          "name": "Duke's",
+          "ilvl": 60,
+          "min": 51.0,
+          "max": 55.0
+        },
+        {
+          "tier": 4,
+          "name": "Count's",
+          "ilvl": 46,
+          "min": 45.0,
+          "max": 50.0
+        },
+        {
+          "tier": 5,
+          "name": "Marquess'",
+          "ilvl": 33,
+          "min": 39.0,
+          "max": 44.0
+        },
+        {
+          "tier": 6,
+          "name": "Viscount's",
+          "ilvl": 16,
+          "min": 33.0,
+          "max": 38.0
+        },
+        {
+          "tier": 7,
+          "name": "Baron's",
+          "ilvl": 8,
+          "min": 27.0,
+          "max": 32.0
+        },
+        {
+          "tier": 8,
+          "name": "Lord's",
+          "ilvl": 1,
+          "min": 30.0,
+          "max": 36.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": true,
+      "tags": []
+    },
+    {
+      "id": "explicit.localincreasedspiritandmana",
+      "name": "LocalIncreasedSpiritAndMana",
+      "textPattern": "#% increased Spirit# to maximum Mana",
+      "itemClasses": [
+        "Sceptre"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Chancellor's",
+          "ilvl": 70,
+          "min": 35.0,
+          "max": 38.0
+        },
+        {
+          "tier": 2,
+          "name": "Diplomat's",
+          "ilvl": 58,
+          "min": 31.0,
+          "max": 34.0
+        },
+        {
+          "tier": 3,
+          "name": "Envoy's",
+          "ilvl": 48,
+          "min": 27.0,
+          "max": 30.0
+        },
+        {
+          "tier": 4,
+          "name": "Minister's",
+          "ilvl": 36,
+          "min": 23.0,
+          "max": 26.0
+        },
+        {
+          "tier": 5,
+          "name": "Emissary's",
+          "ilvl": 26,
+          "min": 19.0,
+          "max": 22.0
+        },
+        {
+          "tier": 6,
+          "name": "Counselor's",
+          "ilvl": 11,
+          "min": 15.0,
+          "max": 18.0
+        },
+        {
+          "tier": 7,
+          "name": "Advisor's",
+          "ilvl": 2,
+          "min": 10.0,
+          "max": 14.0
+        }
+      ],
+      "category": "mana",
+      "isPrefix": true,
+      "tags": []
+    },
+    {
+      "id": "explicit.presenceradius",
+      "name": "PresenceRadius",
+      "textPattern": "#% increased Presence Area of Effect",
+      "itemClasses": [
+        "Sceptre"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Influence",
+          "ilvl": 72,
+          "min": 66.0,
+          "max": 80.0
+        },
+        {
+          "tier": 2,
+          "name": "of Guidance",
+          "ilvl": 56,
+          "min": 56.0,
+          "max": 65.0
+        },
+        {
+          "tier": 3,
+          "name": "of Outreach",
+          "ilvl": 40,
+          "min": 46.0,
+          "max": 55.0
+        },
+        {
+          "tier": 4,
+          "name": "of Direction",
+          "ilvl": 23,
+          "min": 36.0,
+          "max": 45.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.minionlife",
+      "name": "MinionLife",
+      "textPattern": "Minions have #% increased maximum Life",
+      "itemClasses": [
+        "Sceptre"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Rector",
+          "ilvl": 80,
+          "min": 46.0,
+          "max": 50.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Administrator",
+          "ilvl": 64,
+          "min": 41.0,
+          "max": 45.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Headmaster",
+          "ilvl": 48,
+          "min": 36.0,
+          "max": 40.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Director",
+          "ilvl": 32,
+          "min": 31.0,
+          "max": 35.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Tutor",
+          "ilvl": 16,
+          "min": 26.0,
+          "max": 30.0
+        },
+        {
+          "tier": 6,
+          "name": "of the Mentor",
+          "ilvl": 2,
+          "min": 21.0,
+          "max": 25.0
+        }
+      ],
+      "category": "life",
+      "isPrefix": false,
+      "tags": [
+        "life",
+        "minion"
+      ]
+    },
+    {
+      "id": "explicit.additionalarrows",
+      "name": "AdditionalArrows",
+      "textPattern": "#% Surpassing chance to fire an additional Arrow",
+      "itemClasses": [
+        "Bow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Many",
+          "ilvl": 82,
+          "min": 175.0,
+          "max": 200.0
+        },
+        {
+          "tier": 2,
+          "name": "of Shards",
+          "ilvl": 66,
+          "min": 125.0,
+          "max": 150.0
+        },
+        {
+          "tier": 3,
+          "name": "of Splintering",
+          "ilvl": 55,
+          "min": 75.0,
+          "max": 100.0
+        },
+        {
+          "tier": 4,
+          "name": "of Surplus",
+          "ilvl": 46,
+          "min": 25.0,
+          "max": 50.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": [
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.additionalammo",
+      "name": "AdditionalAmmo",
+      "textPattern": "Loads # additional bolts",
+      "itemClasses": [
+        "Crossbow"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Bursting",
+          "ilvl": 82,
+          "min": 2.0,
+          "max": 2.0
+        },
+        {
+          "tier": 2,
+          "name": "of Shelling",
+          "ilvl": 55,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": [
+        "attack"
+      ]
+    },
+    {
+      "id": "explicit.chancetopierce",
+      "name": "ChanceToPierce",
+      "textPattern": "#% chance to Pierce an Enemy",
+      "itemClasses": [
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Penetrating",
+          "ilvl": 77,
+          "min": 24.0,
+          "max": 26.0
+        },
+        {
+          "tier": 2,
+          "name": "of Skewering",
+          "ilvl": 61,
+          "min": 21.0,
+          "max": 23.0
+        },
+        {
+          "tier": 3,
+          "name": "of Puncturing",
+          "ilvl": 44,
+          "min": 18.0,
+          "max": 20.0
+        },
+        {
+          "tier": 4,
+          "name": "of Drilling",
+          "ilvl": 26,
+          "min": 15.0,
+          "max": 17.0
+        },
+        {
+          "tier": 5,
+          "name": "of Piercing",
+          "ilvl": 11,
+          "min": 12.0,
+          "max": 14.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": false,
+      "tags": []
+    },
+    {
+      "id": "explicit.projectilespeed",
+      "name": "ProjectileSpeed",
+      "textPattern": "#% increased Projectile Speed",
+      "itemClasses": [
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Nimble",
+          "ilvl": 82,
+          "min": 42.0,
+          "max": 46.0
+        },
+        {
+          "tier": 2,
+          "name": "Rapid",
+          "ilvl": 55,
+          "min": 34.0,
+          "max": 41.0
+        },
+        {
+          "tier": 3,
+          "name": "Quick",
+          "ilvl": 41,
+          "min": 26.0,
+          "max": 33.0
+        },
+        {
+          "tier": 4,
+          "name": "Brisk",
+          "ilvl": 27,
+          "min": 18.0,
+          "max": 25.0
+        },
+        {
+          "tier": 5,
+          "name": "Darting",
+          "ilvl": 14,
+          "min": 10.0,
+          "max": 17.0
+        }
+      ],
+      "category": "speed",
+      "isPrefix": true,
+      "tags": [
+        "speed"
+      ]
+    },
+    {
+      "id": "explicit.damagewithweapontypeskill",
+      "name": "DamageWithWeaponTypeSkill",
+      "textPattern": "#% increased Damage with Bow Skills",
+      "itemClasses": [
+        "Quiver"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Impaling",
+          "ilvl": 81,
+          "min": 51.0,
+          "max": 59.0
+        },
+        {
+          "tier": 2,
+          "name": "Lacerating",
+          "ilvl": 60,
+          "min": 43.0,
+          "max": 50.0
+        },
+        {
+          "tier": 3,
+          "name": "Incisive",
+          "ilvl": 46,
+          "min": 37.0,
+          "max": 42.0
+        },
+        {
+          "tier": 4,
+          "name": "Perforating",
+          "ilvl": 33,
+          "min": 31.0,
+          "max": 36.0
+        },
+        {
+          "tier": 5,
+          "name": "Trenchant",
+          "ilvl": 16,
+          "min": 21.0,
+          "max": 30.0
+        },
+        {
+          "tier": 6,
+          "name": "Acute",
+          "ilvl": 1,
+          "min": 11.0,
+          "max": 20.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": true,
+      "tags": [
+        "damage"
+      ]
+    },
+    {
+      "id": "explicit.increasedshieldblockpercentage",
+      "name": "IncreasedShieldBlockPercentage",
+      "textPattern": "#% increased Block chance",
+      "itemClasses": [
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "Adamant",
+          "ilvl": 65,
+          "min": 25.0,
+          "max": 30.0
+        },
+        {
+          "tier": 2,
+          "name": "Unrelenting",
+          "ilvl": 33,
+          "min": 20.0,
+          "max": 24.0
+        },
+        {
+          "tier": 3,
+          "name": "Steadfast",
+          "ilvl": 1,
+          "min": 15.0,
+          "max": 19.0
+        }
+      ],
+      "category": "other",
+      "isPrefix": true,
+      "tags": []
+    },
+    {
+      "id": "explicit.reducedphysicaldamagetaken",
+      "name": "ReducedPhysicalDamageTaken",
+      "textPattern": "#% additional Physical Damage Reduction",
+      "itemClasses": [
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Conservator",
+          "ilvl": 77,
+          "min": 8.0,
+          "max": 8.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Protector",
+          "ilvl": 66,
+          "min": 7.0,
+          "max": 7.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Sentry",
+          "ilvl": 53,
+          "min": 6.0,
+          "max": 6.0
+        },
+        {
+          "tier": 4,
+          "name": "of the Custodian",
+          "ilvl": 41,
+          "min": 5.0,
+          "max": 5.0
+        },
+        {
+          "tier": 5,
+          "name": "of the Watchman",
+          "ilvl": 32,
+          "min": 4.0,
+          "max": 4.0
+        }
+      ],
+      "category": "damage",
+      "isPrefix": false,
+      "tags": [
+        "physical"
+      ]
+    },
+    {
+      "id": "explicit.maximumfireresist",
+      "name": "MaximumFireResist",
+      "textPattern": "#% to Maximum Fire Resistance",
+      "itemClasses": [
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Solar Storm",
+          "ilvl": 81,
+          "min": 3.0,
+          "max": 3.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Molten Core",
+          "ilvl": 75,
+          "min": 2.0,
+          "max": 2.0
+        },
+        {
+          "tier": 3,
+          "name": "of the Bushfire",
+          "ilvl": 68,
+          "min": 1.0,
+          "max": 1.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "fire",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.maximumcoldresist",
+      "name": "MaximumColdResist",
+      "textPattern": "#% to Maximum Cold Resistance",
+      "itemClasses": [
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Mammoth",
+          "ilvl": 81,
+          "min": 3.0,
+          "max": 3.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Tundra",
+          "ilvl": 75,
+          "min": 2.0,
+          "max": 2.0
+        },
+        {
+          "tier": 3,
+          "name": "of Furs",
+          "ilvl": 68,
+          "min": 1.0,
+          "max": 1.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "cold",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.maximumlightningresistance",
+      "name": "MaximumLightningResistance",
+      "textPattern": "#% to Maximum Lightning Resistance",
+      "itemClasses": [
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Lightning Rod",
+          "ilvl": 81,
+          "min": 3.0,
+          "max": 3.0
+        },
+        {
+          "tier": 2,
+          "name": "of Shockproofing",
+          "ilvl": 75,
+          "min": 2.0,
+          "max": 2.0
+        },
+        {
+          "tier": 3,
+          "name": "of Impedance",
+          "ilvl": 68,
+          "min": 1.0,
+          "max": 1.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "lightning",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.maximumchaosresistance",
+      "name": "MaximumChaosResistance",
+      "textPattern": "#% to Maximum Chaos Resistance",
+      "itemClasses": [
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of Harmony",
+          "ilvl": 81,
+          "min": 3.0,
+          "max": 3.0
+        },
+        {
+          "tier": 2,
+          "name": "of Concord",
+          "ilvl": 75,
+          "min": 2.0,
+          "max": 2.0
+        },
+        {
+          "tier": 3,
+          "name": "of Regularity",
+          "ilvl": 68,
+          "min": 1.0,
+          "max": 1.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "chaos",
+        "resistance"
+      ]
+    },
+    {
+      "id": "explicit.maximumresistances",
+      "name": "MaximumResistances",
+      "textPattern": "#% to all Maximum Elemental Resistances",
+      "itemClasses": [
+        "Shield (Str)"
+      ],
+      "tiers": [
+        {
+          "tier": 1,
+          "name": "of the Everlasting",
+          "ilvl": 81,
+          "min": 2.0,
+          "max": 2.0
+        },
+        {
+          "tier": 2,
+          "name": "of the Deathless",
+          "ilvl": 75,
+          "min": 1.0,
+          "max": 1.0
+        }
+      ],
+      "category": "resistance",
+      "isPrefix": false,
+      "tags": [
+        "elemental",
+        "resistance"
+      ]
+    }
+  ],
+  "version": "0.1.0",
+  "lastUpdated": "2026-01-01T16:47:06.661250",
+  "source": "poe2db.tw"
+}

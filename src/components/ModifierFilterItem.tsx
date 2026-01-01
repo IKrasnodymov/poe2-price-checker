@@ -1,22 +1,34 @@
 // src/components/ModifierFilterItem.tsx
-// Compact modifier filter row component
+// Compact modifier filter row component with tier evaluation
 
-import { FC } from "react";
+import { FC, useMemo } from "react";
 import { ItemModifier } from "../lib/types";
 import { MOD_TYPE_COLORS } from "../styles/constants";
+import { TierBadge } from "./TierBadge";
+import { evaluateModifier, ModifierEvaluation } from "../utils/itemEvaluator";
+import { isTierDataLoaded } from "../data/modifierTiers";
 
 interface ModifierFilterProps {
   modifier: ItemModifier;
   index: number;
   onToggle: (index: number) => void;
+  tierEval?: ModifierEvaluation;  // Pre-computed tier evaluation (optional)
 }
 
 export const ModifierFilterItem: FC<ModifierFilterProps> = ({
   modifier,
   index,
   onToggle,
+  tierEval,
 }) => {
   const typeColor = MOD_TYPE_COLORS[modifier.type] || MOD_TYPE_COLORS.explicit;
+
+  // Compute tier evaluation if not provided and tier data is loaded
+  const evaluation = useMemo(() => {
+    if (tierEval) return tierEval;
+    if (!isTierDataLoaded()) return null;
+    return evaluateModifier(modifier);
+  }, [modifier, tierEval]);
 
   // Split text to highlight numeric values
   const parts = modifier.text.split(/(\+?-?\d+(?:\.\d+)?%?)/g);
@@ -77,14 +89,21 @@ export const ModifierFilterItem: FC<ModifierFilterProps> = ({
 
       {/* Type badge + Tier on the right */}
       <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-        {modifier.tier && (
-          <span style={{
-            fontSize: 9,
-            color: "#666",
-          }}>
+        {/* Tier badge - from evaluation or fallback to modifier.tier */}
+        {evaluation && evaluation.tier !== null ? (
+          <TierBadge
+            tier={evaluation.tier}
+            totalTiers={evaluation.totalTiers}
+            rollPercent={evaluation.rollPercent}
+            compact
+          />
+        ) : modifier.tier ? (
+          <span style={{ fontSize: 9, color: "#666" }}>
             T{modifier.tier}
           </span>
-        )}
+        ) : null}
+
+        {/* Mod type badge */}
         <span style={{
           fontSize: 8,
           padding: "2px 4px",

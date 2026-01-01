@@ -1,7 +1,7 @@
 // src/components/PriceCheckContent.tsx
 // Main price check content component
 
-import { FC, useState, useEffect, useCallback } from "react";
+import { FC, useState, useEffect, useCallback, useMemo } from "react";
 import { Spinner } from "@decky/ui";
 import { call } from "@decky/api";
 import { FaExclamationTriangle, FaSync } from "react-icons/fa";
@@ -27,6 +27,9 @@ import { ItemDisplay } from "./ItemDisplay";
 import { ActionMenu } from "./ActionMenu";
 import { ModifierFilterItem } from "./ModifierFilterItem";
 import { TieredPriceDisplay } from "./TieredPriceDisplay";
+import { RatingBadge } from "./TierBadge";
+import { loadModifierTierData, isTierDataLoaded, ModifierTierData } from "../data/modifierTiers";
+import { evaluateItem, ItemEvaluation } from "../utils/itemEvaluator";
 
 export const PriceCheckContent: FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +51,7 @@ export const PriceCheckContent: FC = () => {
     poesessid: "",
   });
 
-  // Load settings and settingsDir on mount
+  // Load settings, settingsDir, and tier data on mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -68,9 +71,37 @@ export const PriceCheckContent: FC = () => {
         console.error("Failed to load settings dir:", e);
       }
     };
+    const loadTierData = async () => {
+      try {
+        if (!isTierDataLoaded()) {
+          // Load tier data from backend
+          const result = await call<[], { success: boolean; data?: ModifierTierData; error?: string }>(
+            "get_modifier_tier_data"
+          );
+          if (result.success && result.data) {
+            loadModifierTierData(result.data);
+            console.log("Loaded modifier tier data:", result.data.modifiers?.length || 0, "modifiers");
+          } else {
+            console.warn("No tier data available:", result.error);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load tier data:", e);
+      }
+    };
     loadSettings();
     loadSettingsDir();
+    loadTierData();
   }, []);
+
+  // Compute item evaluation when we have a parsed item
+  const itemEvaluation = useMemo<ItemEvaluation | null>(() => {
+    if (!parsedItem) return null;
+    if (!isTierDataLoaded()) return null;
+    // Only evaluate rare items (they have explicit mods that matter)
+    if (parsedItem.rarity !== "Rare" && parsedItem.rarity !== "Magic") return null;
+    return evaluateItem(parsedItem);
+  }, [parsedItem]);
 
   /**
    * Progressive search - searches through tiers for best results
@@ -419,6 +450,7 @@ export const PriceCheckContent: FC = () => {
           <div style={{
             display: "flex",
             justifyContent: "center",
+            alignItems: "center",
             gap: 12,
             fontSize: 10,
             color: "#666"
@@ -430,6 +462,13 @@ export const PriceCheckContent: FC = () => {
             <span>
               {tieredResult.tiers.reduce((sum, t) => sum + t.total, 0)} total listings
             </span>
+            {/* Item quality indicator */}
+            {itemEvaluation && (
+              <>
+                <span>•</span>
+                <RatingBadge rating={itemEvaluation.rating} score={itemEvaluation.overallScore} />
+              </>
+            )}
           </div>
         </div>
       )}

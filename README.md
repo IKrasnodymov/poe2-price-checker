@@ -11,7 +11,30 @@ A Steam Deck plugin for checking Path of Exile 2 item prices directly in Gaming 
 - **poe2scout Prices**: Get aggregated price data for uniques and currency
 - **Scan History**: View all previously scanned items with price dynamics over time
 - **Modifier Filtering**: Toggle modifiers to refine price search
+- **Item Quality Rating**: Automatic tier evaluation for modifiers (T1-T5+) with quality rating
 - **League Selection**: Choose your current league in settings
+
+## Item Quality System
+
+The plugin automatically evaluates Rare and Magic items based on modifier tiers:
+
+### Modifier Tiers
+Each modifier shows its tier (T1 = best, T5+ = low):
+- **T1-T2** (green): Top tier rolls - very valuable
+- **T3-T4** (yellow): Good rolls - decent value
+- **T5+** (gray): Low tier rolls - less valuable
+
+### Item Rating
+Overall item quality is shown with a badge:
+| Rating | Badge | Meaning |
+|--------|-------|---------|
+| Excellent | `★ Top` (green) | Multiple T1-T2 mods, high rolls |
+| Great | `★ Great` (light green) | Good mix of high tier mods |
+| Good | `Good` (yellow) | Usable for most builds |
+| Mid | `Mid` (orange) | Average, may need upgrades |
+| Low | `Low` (gray) | Low tier mods, consider replacing |
+
+Tier data is sourced from [poe2db.tw](https://poe2db.tw/) and covers 98+ modifiers.
 
 ## Requirements
 
@@ -217,12 +240,24 @@ Click **"Show Debug Info"** in Settings to see:
 ```
 poe2-price-checker/
 ├── src/
-│   ├── index.tsx              # Main plugin UI (auto-check, price display)
-│   ├── lib/
-│   │   ├── itemParser.ts      # PoE2 item text parser
-│   │   └── types.ts           # TypeScript definitions
-│   └── utils/
-│       └── modifierMatcher.ts # Modifier matching utilities
+│   ├── index.tsx              # Main plugin entry point
+│   ├── components/            # React components
+│   │   ├── PriceCheckContent.tsx  # Main price check UI
+│   │   ├── TierBadge.tsx      # Tier and rating badges
+│   │   ├── ModifierFilterItem.tsx # Modifier with tier display
+│   │   └── ...
+│   ├── data/
+│   │   └── modifierTiers.ts   # Tier data types and loading
+│   ├── utils/
+│   │   ├── itemEvaluator.ts   # Item quality evaluation
+│   │   └── modifierMatcher.ts # Modifier matching utilities
+│   └── lib/
+│       ├── itemParser.ts      # PoE2 item text parser
+│       └── types.ts           # TypeScript definitions
+├── data/
+│   └── modifier_tiers.json    # Tier data from poe2db.tw (98+ mods)
+├── scripts/
+│   └── parse_poe2db.py        # Parser for updating tier data
 ├── main.py                    # Python backend
 ├── plugin.json                # Plugin metadata
 ├── package.json               # Node dependencies
@@ -254,6 +289,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) - Plugin framework
 - [poe2scout](https://poe2scout.com) - Price data for uniques and currency
+- [poe2db.tw](https://poe2db.tw/) - Modifier tier data
 - [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2) - Parser reference
 - [Path of Exile 2](https://pathofexile.com) - Trade API
 

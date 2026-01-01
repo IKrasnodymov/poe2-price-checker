@@ -10,3 +10,4 @@ export { ModifierFilterItem } from "./ModifierFilterItem";
 export { ActionMenu } from "./ActionMenu";
 export { TieredPriceDisplay } from "./TieredPriceDisplay";
 export { PriceCheckContent } from "./PriceCheckContent";
+export { TierBadge, RatingBadge, GoodItemIndicator, TierSummary } from "./TierBadge";
