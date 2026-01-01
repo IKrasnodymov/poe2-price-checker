@@ -166,7 +166,7 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
             {insights?.error || "Need more data"}
           </div>
           <div style={{ color: "#888", fontSize: 10 }}>
-            Scan more items with exact matches (Tier 0-1) to build statistics
+            Scan more items to build statistics
           </div>
         </div>
       )}

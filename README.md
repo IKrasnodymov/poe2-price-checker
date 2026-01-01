@@ -47,7 +47,7 @@ Access via **Menu → Market Stats** to see:
 - **Item Class Prices**: Average prices by item type (boots, gloves, etc.)
 - **Top Scanned Items**: Your most valuable scanned items
 
-Data is collected from exact matches (Tier 0-1) to build accurate statistics over time.
+Data is collected from all scans to build statistics over time.
 
 ## Requirements
 

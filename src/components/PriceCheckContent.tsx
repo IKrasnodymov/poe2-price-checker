@@ -218,8 +218,8 @@ export const PriceCheckContent: FC = () => {
               tierWithMostListings.listings.length
             );
 
-            // Save price learning data for Tier 0-1 (exact matches) to improve future estimates
-            if (result.stopped_at_tier <= 1 && isTierDataLoaded()) {
+            // Save price learning data for all scans to build statistics
+            if (isTierDataLoaded()) {
               try {
                 const itemEval = evaluateItem(item);
                 const modCategories = itemEval.modifierBreakdown

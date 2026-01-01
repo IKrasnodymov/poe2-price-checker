@@ -1004,14 +1004,10 @@ class Plugin:
         search_tier: int
     ) -> Dict[str, Any]:
         """
-        Add a price learning record when we find exact/similar matches.
-        This helps build a model of price vs quality for each item class.
+        Add a price learning record for all scans.
+        This helps build statistics and price estimates.
         """
         import decky
-
-        # Only learn from good matches (Tier 0-1)
-        if search_tier > 1:
-            return {"success": False, "reason": "Only learning from exact matches"}
 
         # Normalize item class
         item_class_key = item_class.lower().replace(" ", "_")
