@@ -1,7 +1,7 @@
 // src/components/TieredPriceDisplay.tsx
 // Tiered price display component for showing search results
 
-import { FC, useState, useEffect } from "react";
+import { FC, useState, useEffect, useMemo } from "react";
 import {
   PanelSection,
   PanelSectionRow,
@@ -12,10 +12,12 @@ import { ParsedItem, TieredSearchResult, SearchTier } from "../lib/types";
 import { formatPrice, getBestPrice } from "../utils/modifierMatcher";
 import { formatIndexedTimeCompact, calculatePriceStats, PriceStats } from "../utils/formatting";
 import { TIER_COLORS } from "../styles/constants";
+import { ItemEvaluation } from "../utils/itemEvaluator";
 
 interface TieredPriceDisplayProps {
   result: TieredSearchResult;
   item?: ParsedItem | null;
+  itemEvaluation?: ItemEvaluation | null;
 }
 
 // Get tier color based on tier number
@@ -41,8 +43,45 @@ const getTierStats = (tier: SearchTier): PriceStats | null => {
   return calculatePriceStats(tier.listings);
 };
 
-export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result }) => {
+export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEvaluation }) => {
   const [expandedTiers, setExpandedTiers] = useState<Set<number>>(new Set([1]));
+
+  // Calculate simple price estimate from Similar tier (no complex multipliers)
+  const priceEstimate = useMemo<{
+    min: number;
+    max: number;
+    median: number;
+    currency: string;
+    source: "similar" | "base";
+    count: number;
+    rating?: string;
+  } | null>(() => {
+    // Only show estimate if we don't have exact matches (tier 0 or 1)
+    const hasExactMatch = result.tiers.some(t => (t.tier === 0 || t.tier === 1) && t.total > 0);
+    if (hasExactMatch) return null;
+
+    // Prefer Tier 2 (SIMILAR) - already filtered by top mods
+    const similarTier = result.tiers.find(t => t.tier === 2 && t.total > 0);
+    const baseTier = result.tiers.find(t => t.tier === 3 && t.total > 0);
+
+    const referenceTier = similarTier || baseTier;
+    if (!referenceTier || !referenceTier.listings || referenceTier.listings.length === 0) {
+      return null;
+    }
+
+    const stats = calculatePriceStats(referenceTier.listings);
+    if (!stats) return null;
+
+    return {
+      min: stats.min,
+      max: stats.max,
+      median: stats.median,
+      currency: stats.currency,
+      source: similarTier ? "similar" : "base",
+      count: referenceTier.total,
+      rating: itemEvaluation?.rating,
+    };
+  }, [result, itemEvaluation]);
 
   // Find first tier with results for auto-expand
   useEffect(() => {
@@ -95,6 +134,58 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result }) => {
               return best ? formatPrice(best.amount, best.currency) : "N/A";
             })()}
           </span>
+        </div>
+      )}
+
+      {/* Price Estimate (when no exact match - show Similar tier prices directly) */}
+      {priceEstimate && (
+        <div style={{
+          background: priceEstimate.source === "similar"
+            ? "linear-gradient(135deg, rgba(100, 149, 237, 0.15) 0%, rgba(70, 130, 180, 0.1) 100%)"
+            : "linear-gradient(135deg, rgba(128, 128, 128, 0.15) 0%, rgba(105, 105, 105, 0.1) 100%)",
+          border: `1px solid ${priceEstimate.source === "similar" ? "rgba(100, 149, 237, 0.4)" : "rgba(128, 128, 128, 0.4)"}`,
+          borderRadius: 6,
+          padding: "10px 12px",
+          margin: "8px 16px",
+        }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 4,
+          }}>
+            <span style={{
+              fontSize: 10,
+              color: priceEstimate.source === "similar" ? "#6495ed" : "#888",
+              fontWeight: "bold"
+            }}>
+              {priceEstimate.source === "similar" ? "SIMILAR ITEMS" : "BASE ITEMS"}
+            </span>
+            {priceEstimate.rating && (
+              <span style={{
+                fontSize: 9,
+                padding: "1px 4px",
+                borderRadius: 3,
+                backgroundColor: "rgba(255, 165, 0, 0.2)",
+                color: "#ffa500",
+              }}>
+                Your: {priceEstimate.rating}
+              </span>
+            )}
+          </div>
+          <div style={{
+            fontSize: 16,
+            fontWeight: "bold",
+            color: priceEstimate.source === "similar" ? "#6495ed" : "#aaa"
+          }}>
+            {formatPrice(priceEstimate.min, priceEstimate.currency)}
+            {priceEstimate.min !== priceEstimate.max && (
+              <span> — {formatPrice(priceEstimate.max, priceEstimate.currency)}</span>
+            )}
+          </div>
+          <div style={{ fontSize: 9, color: "#888", marginTop: 4 }}>
+            Median: {formatPrice(priceEstimate.median, priceEstimate.currency)} • {priceEstimate.count} listings
+          </div>
         </div>
       )}
 

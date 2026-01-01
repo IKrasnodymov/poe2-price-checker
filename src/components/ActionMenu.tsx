@@ -8,24 +8,31 @@ import {
   FaClipboardCheck,
   FaHistory,
   FaCog,
+  FaChartLine,
 } from "react-icons/fa";
 
 interface ActionMenuProps {
   onPasteAndCheck: () => void;
   onShowHistory: () => void;
   onShowSettings: () => void;
+  onShowStats: () => void;
   isLoading: boolean;
+  isRateLimited?: boolean;
 }
 
 export const ActionMenu: FC<ActionMenuProps> = ({
   onPasteAndCheck,
   onShowHistory,
   onShowSettings,
+  onShowStats,
   isLoading,
+  isRateLimited = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const isDisabled = isLoading || isRateLimited;
 
   const handlePasteAndCheck = () => {
+    if (isDisabled) return;
     setExpanded(false); // Collapse menu after action
     onPasteAndCheck();
   };
@@ -74,20 +81,20 @@ export const ActionMenu: FC<ActionMenuProps> = ({
         >
           {/* Paste and Check - main action */}
           <div
-            onClick={isLoading ? undefined : handlePasteAndCheck}
+            onClick={isDisabled ? undefined : handlePasteAndCheck}
             style={{
               padding: "10px 12px",
               borderRadius: 4,
-              cursor: isLoading ? "not-allowed" : "pointer",
-              opacity: isLoading ? 0.5 : 1,
+              cursor: isDisabled ? "not-allowed" : "pointer",
+              opacity: isDisabled ? 0.5 : 1,
               display: "flex",
               alignItems: "center",
               gap: 8,
-              background: "rgba(255,215,0,0.1)",
+              background: isRateLimited ? "rgba(255,100,100,0.1)" : "rgba(255,215,0,0.1)",
               marginBottom: 4,
             }}
           >
-            <FaClipboardCheck style={{ color: "#ffd700" }} />
+            <FaClipboardCheck style={{ color: isRateLimited ? "#ff6b6b" : "#ffd700" }} />
             <span style={{ color: "#fff" }}>Paste and Check</span>
           </div>
 
@@ -106,6 +113,23 @@ export const ActionMenu: FC<ActionMenuProps> = ({
           >
             <FaHistory style={{ color: "#4dabf7" }} />
             <span style={{ color: "#ddd" }}>Scan History</span>
+          </div>
+
+          {/* Market Stats */}
+          <div
+            onClick={onShowStats}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 4,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
+            <FaChartLine style={{ color: "#69db7c" }} />
+            <span style={{ color: "#ddd" }}>Market Stats</span>
           </div>
 
           {/* Settings */}

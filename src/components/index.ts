@@ -11,3 +11,4 @@ export { ActionMenu } from "./ActionMenu";
 export { TieredPriceDisplay } from "./TieredPriceDisplay";
 export { PriceCheckContent } from "./PriceCheckContent";
 export { TierBadge, RatingBadge, GoodItemIndicator, TierSummary } from "./TierBadge";
+export { StatsPanel } from "./StatsPanel";

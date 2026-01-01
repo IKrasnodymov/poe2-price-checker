@@ -309,3 +309,109 @@ export function getQuickTierSummary(item: ParsedItem): string {
 
   return tiers || "No tier data";
 }
+
+// =========================================================================
+// PRICE ESTIMATION
+// =========================================================================
+
+export interface PriceEstimate {
+  minPrice: number;
+  maxPrice: number;
+  currency: string;
+  confidence: "high" | "medium" | "low";
+  reason: string;
+  basedOn: string;
+}
+
+/**
+ * Multiplier ranges based on item rating
+ * [minMultiplier, maxMultiplier]
+ * More conservative - base price already includes decent items
+ */
+const RATING_MULTIPLIERS: Record<ItemRating, [number, number]> = {
+  excellent: [1.5, 3.0],   // T1 mods, high rolls - premium over base
+  great: [1.2, 2.0],       // T2 mods, good rolls
+  good: [1.0, 1.5],        // T3-T4 mods, around base price
+  okay: [0.8, 1.2],        // Mixed tiers - might be below average
+  trash: [0.5, 0.9],       // Low tier mods - worth less than base
+};
+
+/**
+ * Estimate item price based on base price and item quality
+ *
+ * @param basePrice - Price from base-only search (Tier 3)
+ * @param baseCurrency - Currency of base price
+ * @param baseListingCount - Number of listings for base price
+ * @param evaluation - Item quality evaluation
+ * @returns Price estimate with range and confidence
+ */
+export function estimatePrice(
+  basePrice: number,
+  baseCurrency: string,
+  baseListingCount: number,
+  evaluation: ItemEvaluation
+): PriceEstimate {
+  const [minMult, maxMult] = RATING_MULTIPLIERS[evaluation.rating];
+
+  // Adjust multipliers based on specific mod tiers
+  let adjustedMinMult = minMult;
+  let adjustedMaxMult = maxMult;
+
+  // Count T1 and T2 mods for additional adjustment (conservative)
+  const t1Count = evaluation.modifierBreakdown.filter(m => m.tier === 1).length;
+  const t2Count = evaluation.modifierBreakdown.filter(m => m.tier === 2).length;
+
+  // T1 mods add modest premium
+  if (t1Count >= 2) {
+    adjustedMinMult *= 1.15;
+    adjustedMaxMult *= 1.25;
+  } else if (t1Count === 1) {
+    adjustedMinMult *= 1.05;
+    adjustedMaxMult *= 1.1;
+  }
+
+  // T2 mods add small premium
+  if (t2Count >= 2) {
+    adjustedMinMult *= 1.05;
+    adjustedMaxMult *= 1.1;
+  }
+
+  // Calculate price range
+  const minPrice = Math.round(basePrice * adjustedMinMult * 10) / 10;
+  const maxPrice = Math.round(basePrice * adjustedMaxMult * 10) / 10;
+
+  // Determine confidence based on listing count and tier data
+  let confidence: "high" | "medium" | "low";
+  const modsWithTiers = evaluation.modifierBreakdown.filter(m => m.tier !== null).length;
+
+  if (baseListingCount >= 10 && modsWithTiers >= 3) {
+    confidence = "high";
+  } else if (baseListingCount >= 5 || modsWithTiers >= 2) {
+    confidence = "medium";
+  } else {
+    confidence = "low";
+  }
+
+  // Build reason string
+  const tierSummary = evaluation.modifierBreakdown
+    .filter(m => m.tier !== null)
+    .slice(0, 3)
+    .map(m => m.tierLabel)
+    .join(" ");
+
+  const reason = `${evaluation.rating} item` +
+    (t1Count > 0 ? ` with ${t1Count}×T1` : "") +
+    (t2Count > 0 ? ` ${t2Count}×T2` : "") +
+    (tierSummary ? ` (${tierSummary}...)` : "");
+
+  const basedOn = `${baseListingCount} base listings`;
+
+  return {
+    minPrice,
+    maxPrice,
+    currency: baseCurrency,
+    confidence,
+    reason,
+    basedOn,
+  };
+}

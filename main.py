@@ -61,9 +61,17 @@ class Plugin:
     MAX_SCAN_HISTORY = 50  # Keep last 50 scanned items
     ICON_CACHE_DIR = "icon_cache"  # Subdirectory for cached icons
 
+    # Price learning data - collected from exact matches to improve estimates
+    # Structure: {item_class: [{quality_score, mods, price, currency, timestamp}]}
+    price_learning: Dict[str, List[Dict[str, Any]]] = None  # type: ignore
+    MAX_LEARNING_RECORDS_PER_CLASS = 100  # Keep last 100 records per item class
+
     # poe2scout.com cache - loaded once at startup
     poe2scout_cache: Dict[str, Any] = None  # type: ignore  # {items: {name: data}, currency: {apiId: data}}
     poe2scout_divine_price: float = 100.0  # Divine price in exalted from /api/leagues
+
+    # Rate limit tracking - when rate limited, stores the expiry timestamp
+    rate_limit_until: float = 0.0  # Unix timestamp when rate limit expires
 
     # Debug: store last fetched listings for debugging
     last_debug_listings: List[Dict[str, Any]] = None  # type: ignore
@@ -151,6 +159,13 @@ class Plugin:
         Plugin.scan_history = []
         try:
             await Plugin.load_scan_history(self)
+        except Exception as e:
+            decky.logger.error(f"Failed to load scan history: {e}")
+
+        # Load price learning data
+        Plugin.price_learning = {}
+        try:
+            await Plugin.load_price_learning(self)
         except Exception as e:
             decky.logger.error(f"Failed to load scan history: {e}")
 
@@ -937,6 +952,301 @@ class Plugin:
         decky.logger.info("Scan history cleared")
         return {"success": True}
 
+    # =========================================================================
+    # PRICE LEARNING (Collecting data for better estimates)
+    # =========================================================================
+
+    def _get_price_learning_path(self) -> str:
+        """Get path to price learning data file"""
+        import decky
+        return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "price_learning.json")
+
+    async def load_price_learning(self) -> None:
+        """Load price learning data from file"""
+        import decky
+        learning_path = Plugin._get_price_learning_path(self)
+
+        if os.path.exists(learning_path):
+            try:
+                with open(learning_path, "r") as f:
+                    Plugin.price_learning = json.load(f)
+                total = sum(len(v) for v in Plugin.price_learning.values())
+                decky.logger.info(f"Loaded price learning data: {len(Plugin.price_learning)} classes, {total} records")
+            except Exception as e:
+                decky.logger.error(f"Failed to load price learning: {e}")
+                Plugin.price_learning = {}
+        else:
+            Plugin.price_learning = {}
+            decky.logger.info("No price learning file found, starting fresh")
+
+    async def save_price_learning(self) -> None:
+        """Save price learning data to file"""
+        import decky
+        learning_path = Plugin._get_price_learning_path(self)
+
+        try:
+            os.makedirs(os.path.dirname(learning_path), exist_ok=True)
+            with open(learning_path, "w") as f:
+                json.dump(Plugin.price_learning, f, indent=2)
+            total = sum(len(v) for v in Plugin.price_learning.values())
+            decky.logger.info(f"Saved price learning data: {len(Plugin.price_learning)} classes, {total} records")
+        except Exception as e:
+            decky.logger.error(f"Failed to save price learning: {e}")
+
+    async def add_price_learning_record(
+        self,
+        item_class: str,
+        base_type: str,
+        quality_score: int,
+        mod_categories: List[str],
+        price: float,
+        currency: str,
+        search_tier: int
+    ) -> Dict[str, Any]:
+        """
+        Add a price learning record when we find exact/similar matches.
+        This helps build a model of price vs quality for each item class.
+        """
+        import decky
+
+        # Only learn from good matches (Tier 0-1)
+        if search_tier > 1:
+            return {"success": False, "reason": "Only learning from exact matches"}
+
+        # Normalize item class
+        item_class_key = item_class.lower().replace(" ", "_")
+
+        # Store price in original currency (no conversion needed)
+        record = {
+            "timestamp": int(time.time()),
+            "base_type": base_type,
+            "quality_score": quality_score,
+            "mod_categories": mod_categories,
+            "price": price,
+            "currency": currency,
+            "search_tier": search_tier
+        }
+
+        # Add to learning data
+        if item_class_key not in Plugin.price_learning:
+            Plugin.price_learning[item_class_key] = []
+
+        Plugin.price_learning[item_class_key].insert(0, record)
+
+        # Trim to max size
+        if len(Plugin.price_learning[item_class_key]) > Plugin.MAX_LEARNING_RECORDS_PER_CLASS:
+            Plugin.price_learning[item_class_key] = Plugin.price_learning[item_class_key][:Plugin.MAX_LEARNING_RECORDS_PER_CLASS]
+
+        # Save to file
+        await Plugin.save_price_learning(self)
+
+        decky.logger.info(f"Added price learning: {item_class} @ {quality_score}q = {price:.1f} {currency}")
+        return {"success": True}
+
+    async def get_price_estimate(
+        self,
+        item_class: str,
+        quality_score: int
+    ) -> Dict[str, Any]:
+        """
+        Get estimated price based on learned data.
+        Returns estimate if we have enough data, otherwise returns null.
+        """
+        import decky
+
+        item_class_key = item_class.lower().replace(" ", "_")
+        records = Plugin.price_learning.get(item_class_key, [])
+
+        if len(records) < 5:
+            return {"success": False, "reason": "Not enough data", "count": len(records)}
+
+        # Find records with similar quality score (±15 points)
+        similar = [r for r in records if abs(r["quality_score"] - quality_score) <= 15]
+
+        if len(similar) < 3:
+            # Fall back to all records for this class
+            similar = records
+
+        # Helper to normalize price to exalted equivalent
+        def normalize_price(r):
+            raw_price = r.get("price", r.get("price_exalted", 0))
+            currency = r.get("currency", r.get("original_currency", "exalted"))
+            if currency.lower() in ["divine", "divine-orb", "div"]:
+                return raw_price * 0.5
+            elif currency.lower() in ["chaos", "chaos-orb"]:
+                return raw_price / 100.0
+            return raw_price
+
+        # Calculate price statistics
+        prices = [normalize_price(r) for r in similar]
+        avg_price = sum(prices) / len(prices)
+        min_price = min(prices)
+        max_price = max(prices)
+
+        decky.logger.info(f"Price estimate for {item_class} @ {quality_score}q: {avg_price:.1f}ex (from {len(similar)} records)")
+
+        return {
+            "success": True,
+            "min": min_price,
+            "max": max_price,
+            "average": avg_price,
+            "currency": "exalted",
+            "sample_count": len(similar),
+            "total_records": len(records)
+        }
+
+    async def get_market_insights(self) -> Dict[str, Any]:
+        """
+        Analyze collected price learning data to determine:
+        - Which mod categories are most valuable
+        - Price trends by item class
+        - Hot mods (appearing in expensive items)
+        """
+        import decky
+        from collections import defaultdict
+
+        if not Plugin.price_learning:
+            return {
+                "success": False,
+                "error": "No data collected yet",
+                "total_records": 0
+            }
+
+        # Aggregate statistics
+        total_records = sum(len(v) for v in Plugin.price_learning.values())
+        if total_records < 5:
+            return {
+                "success": False,
+                "error": f"Need more data (have {total_records}, need 5+)",
+                "total_records": total_records
+            }
+
+        # Analyze mod category values
+        mod_category_stats = defaultdict(lambda: {"total_price": 0.0, "count": 0, "items": []})
+        item_class_stats = defaultdict(lambda: {"total_price": 0.0, "count": 0, "avg_quality": 0.0})
+
+        for item_class, records in Plugin.price_learning.items():
+            for record in records:
+                # Normalize to exalted for stats (simple ratio: 1 divine ≈ 0.5 exalted in PoE2)
+                raw_price = record.get("price", record.get("price_exalted", 0))
+                currency = record.get("currency", record.get("original_currency", "exalted"))
+                if currency.lower() in ["divine", "divine-orb", "div"]:
+                    price = raw_price * 0.5
+                elif currency.lower() in ["chaos", "chaos-orb"]:
+                    price = raw_price / 100.0
+                else:
+                    price = raw_price
+                quality = record.get("quality_score", 50)
+                categories = record.get("mod_categories", [])
+
+                # Track item class stats
+                item_class_stats[item_class]["total_price"] += price
+                item_class_stats[item_class]["count"] += 1
+                item_class_stats[item_class]["avg_quality"] += quality
+
+                # Track mod category stats
+                for cat in categories:
+                    mod_category_stats[cat]["total_price"] += price
+                    mod_category_stats[cat]["count"] += 1
+
+        # Calculate averages
+        hot_mods = []
+        for cat, stats in mod_category_stats.items():
+            if stats["count"] >= 2:
+                avg_price = stats["total_price"] / stats["count"]
+                hot_mods.append({
+                    "category": cat,
+                    "avg_price": round(avg_price, 1),
+                    "count": stats["count"]
+                })
+
+        # Sort by average price (descending)
+        hot_mods.sort(key=lambda x: x["avg_price"], reverse=True)
+
+        # Calculate item class averages
+        class_stats = []
+        for item_class, stats in item_class_stats.items():
+            if stats["count"] >= 1:
+                avg_price = stats["total_price"] / stats["count"]
+                avg_quality = stats["avg_quality"] / stats["count"]
+                class_stats.append({
+                    "item_class": item_class.replace("_", " ").title(),
+                    "avg_price": round(avg_price, 1),
+                    "avg_quality": round(avg_quality),
+                    "count": stats["count"]
+                })
+
+        class_stats.sort(key=lambda x: x["avg_price"], reverse=True)
+
+        # Get recent high-value items (top 5)
+        all_records = []
+        for item_class, records in Plugin.price_learning.items():
+            for record in records:
+                raw_price = record.get("price", record.get("price_exalted", 0))
+                currency = record.get("currency", record.get("original_currency", "exalted"))
+                # Normalize for sorting
+                if currency.lower() in ["divine", "divine-orb", "div"]:
+                    sort_price = raw_price * 0.5
+                elif currency.lower() in ["chaos", "chaos-orb"]:
+                    sort_price = raw_price / 100.0
+                else:
+                    sort_price = raw_price
+                all_records.append({
+                    "item_class": item_class.replace("_", " ").title(),
+                    "base_type": record.get("base_type", "Unknown"),
+                    "price": raw_price,
+                    "currency": currency,
+                    "sort_price": sort_price,
+                    "quality": record.get("quality_score", 0),
+                    "timestamp": record.get("timestamp", 0)
+                })
+
+        # Sort by normalized price and get top 5
+        all_records.sort(key=lambda x: x["sort_price"], reverse=True)
+        top_items = all_records[:5]
+
+        decky.logger.info(f"Market insights: {len(hot_mods)} mod categories, {len(class_stats)} item classes")
+
+        return {
+            "success": True,
+            "total_records": total_records,
+            "hot_mods": hot_mods[:10],  # Top 10 valuable mod categories
+            "item_class_stats": class_stats[:10],  # Top 10 item classes
+            "top_items": top_items,
+            "last_updated": int(time.time())
+        }
+
+    async def get_learning_stats(self) -> Dict[str, Any]:
+        """Get statistics about collected learning data"""
+        import decky
+
+        if not Plugin.price_learning:
+            return {
+                "success": True,
+                "total_records": 0,
+                "item_classes": 0,
+                "classes": {}
+            }
+
+        total = sum(len(v) for v in Plugin.price_learning.values())
+        classes = {}
+        for item_class, records in Plugin.price_learning.items():
+            if records:
+                prices = [r.get("price_exalted", 0) for r in records]
+                classes[item_class] = {
+                    "count": len(records),
+                    "avg_price": round(sum(prices) / len(prices), 1) if prices else 0,
+                    "min_price": round(min(prices), 1) if prices else 0,
+                    "max_price": round(max(prices), 1) if prices else 0
+                }
+
+        return {
+            "success": True,
+            "total_records": total,
+            "item_classes": len(Plugin.price_learning),
+            "classes": classes
+        }
+
     async def get_price_dynamics(
         self,
         item_name: str,
@@ -1147,11 +1457,13 @@ class Plugin:
                 except (ValueError, TypeError):
                     pass
                 wait_time = self.search_limiter.handle_429(retry_after)
-                decky.logger.warning(f"Rate limited (429). Backing off for {wait_time:.1f}s")
+                Plugin.rate_limit_until = time.time() + wait_time
+                decky.logger.warning(f"Rate limited (429). Backing off for {wait_time:.1f}s until {time.strftime('%H:%M:%S', time.localtime(Plugin.rate_limit_until))}")
                 return {
                     "success": False,
-                    "error": f"Rate limited. Waiting {wait_time:.0f}s before retry.",
-                    "retry_after": wait_time
+                    "error": f"Rate limited. Try again at {time.strftime('%H:%M', time.localtime(Plugin.rate_limit_until))}",
+                    "retry_after": wait_time,
+                    "rate_limited": True
                 }
 
             if e.code == 400:
@@ -1282,7 +1594,8 @@ class Plugin:
                     except (ValueError, TypeError):
                         pass
                     wait_time = self.fetch_limiter.handle_429(retry_after)
-                    decky.logger.warning(f"Fetch rate limited (429). Backing off for {wait_time:.1f}s")
+                    Plugin.rate_limit_until = time.time() + wait_time
+                    decky.logger.warning(f"Fetch rate limited (429). Backing off for {wait_time:.1f}s until {time.strftime('%H:%M:%S', time.localtime(Plugin.rate_limit_until))}")
                     # Wait and retry this batch once
                     await asyncio.sleep(wait_time)
                     # Retry this batch
@@ -1736,6 +2049,19 @@ class Plugin:
         import decky
         decky.logger.info("ping called!")
         return {"success": True, "message": "pong"}
+
+    async def get_rate_limit_status(self) -> Dict[str, Any]:
+        """Check if we're currently rate limited"""
+        import time
+        now = time.time()
+        if Plugin.rate_limit_until > now:
+            remaining = int(Plugin.rate_limit_until - now)
+            return {
+                "rate_limited": True,
+                "remaining_seconds": remaining,
+                "until": time.strftime('%H:%M', time.localtime(Plugin.rate_limit_until))
+            }
+        return {"rate_limited": False}
 
     async def get_settings(self) -> Dict[str, Any]:
         """Return current settings"""

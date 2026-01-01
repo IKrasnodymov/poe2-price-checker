@@ -12,6 +12,8 @@ A Steam Deck plugin for checking Path of Exile 2 item prices directly in Gaming 
 - **Scan History**: View all previously scanned items with price dynamics over time
 - **Modifier Filtering**: Toggle modifiers to refine price search
 - **Item Quality Rating**: Automatic tier evaluation for modifiers (T1-T5+) with quality rating
+- **Market Stats**: Track hot mod categories and item class prices from your scans
+- **Rate Limit Indicator**: Visual warning when Trade API is rate limited with countdown
 - **League Selection**: Choose your current league in settings
 
 ## Item Quality System
@@ -35,6 +37,17 @@ Overall item quality is shown with a badge:
 | Low | `Low` (gray) | Low tier mods, consider replacing |
 
 Tier data is sourced from [poe2db.tw](https://poe2db.tw/) and covers 98+ modifiers.
+
+## Market Stats
+
+Access via **Menu → Market Stats** to see:
+
+- **Learning Data**: Total scanned items and item types
+- **Hot Mod Categories**: Which mod categories appear in expensive items
+- **Item Class Prices**: Average prices by item type (boots, gloves, etc.)
+- **Top Scanned Items**: Your most valuable scanned items
+
+Data is collected from exact matches (Tier 0-1) to build accurate statistics over time.
 
 ## Requirements
 
@@ -166,9 +179,13 @@ This error appears for:
 
 These items cannot be searched via Trade API.
 
-### "Rate limited"
+### "Rate Limited" warning
 
-The Trade API has rate limits. Wait 2-3 seconds and try again.
+The Trade API has strict rate limits. When triggered:
+- A red banner shows with the time when you can scan again
+- Scan buttons are disabled and turn red
+- Wait for the countdown (usually 5-10 minutes) before trying again
+- The UI automatically re-enables when the rate limit expires
 
 ### Plugin not appearing in Decky
 
@@ -243,6 +260,7 @@ poe2-price-checker/
 │   ├── index.tsx              # Main plugin entry point
 │   ├── components/            # React components
 │   │   ├── PriceCheckContent.tsx  # Main price check UI
+│   │   ├── StatsPanel.tsx     # Market stats panel
 │   │   ├── TierBadge.tsx      # Tier and rating badges
 │   │   ├── ModifierFilterItem.tsx # Modifier with tier display
 │   │   └── ...

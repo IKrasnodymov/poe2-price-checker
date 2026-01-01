@@ -28,8 +28,15 @@ import { ActionMenu } from "./ActionMenu";
 import { ModifierFilterItem } from "./ModifierFilterItem";
 import { TieredPriceDisplay } from "./TieredPriceDisplay";
 import { RatingBadge } from "./TierBadge";
+import { StatsPanel } from "./StatsPanel";
 import { loadModifierTierData, isTierDataLoaded, ModifierTierData } from "../data/modifierTiers";
 import { evaluateItem, ItemEvaluation } from "../utils/itemEvaluator";
+
+interface RateLimitStatus {
+  rate_limited: boolean;
+  remaining_seconds?: number;
+  until?: string;
+}
 
 export const PriceCheckContent: FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -38,11 +45,13 @@ export const PriceCheckContent: FC = () => {
   const [tieredResult, setTieredResult] = useState<TieredSearchResult | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<ScanHistoryRecord | null>(null);
   const [cameFromCache, setCameFromCache] = useState(false);
   const [settingsDir, setSettingsDir] = useState<string>("");
   const [modifiers, setModifiers] = useState<ItemModifier[]>([]);
   const [autoChecked, setAutoChecked] = useState(false);
+  const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(null);
   const [settings, setSettings] = useState<PluginSettings>({
     league: "Fate of the Vaal",
     useTradeApi: true,
@@ -92,6 +101,21 @@ export const PriceCheckContent: FC = () => {
     loadSettings();
     loadSettingsDir();
     loadTierData();
+  }, []);
+
+  // Check rate limit status periodically
+  useEffect(() => {
+    const checkRateLimit = async () => {
+      try {
+        const status = await call<[], RateLimitStatus>("get_rate_limit_status");
+        setRateLimitStatus(status);
+      } catch (e) {
+        console.error("Failed to check rate limit:", e);
+      }
+    };
+    checkRateLimit();
+    const interval = setInterval(checkRateLimit, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
   }, []);
 
   // Compute item evaluation when we have a parsed item
@@ -193,6 +217,32 @@ export const PriceCheckContent: FC = () => {
               result.stopped_at_tier,
               tierWithMostListings.listings.length
             );
+
+            // Save price learning data for Tier 0-1 (exact matches) to improve future estimates
+            if (result.stopped_at_tier <= 1 && isTierDataLoaded()) {
+              try {
+                const itemEval = evaluateItem(item);
+                const modCategories = itemEval.modifierBreakdown
+                  .filter(m => m.category)
+                  .map(m => m.category as string);
+
+                await call<
+                  [string, string, number, string[], number, string, number],
+                  { success: boolean }
+                >(
+                  "add_price_learning_record",
+                  item.itemClass,
+                  item.basetype,
+                  itemEval.overallScore,
+                  modCategories,
+                  stats.median,
+                  stats.currency,
+                  result.stopped_at_tier
+                );
+              } catch (e) {
+                console.error("Failed to save price learning:", e);
+              }
+            }
           } catch (e) {
             console.error("Failed to save scan record:", e);
           }
@@ -392,6 +442,11 @@ export const PriceCheckContent: FC = () => {
     );
   }
 
+  // Stats panel
+  if (showStats) {
+    return <StatsPanel onBack={() => setShowStats(false)} />;
+  }
+
   // Settings panel
   if (showSettings) {
     return <SettingsPanel onBack={() => setShowSettings(false)} />;
@@ -477,8 +532,34 @@ export const PriceCheckContent: FC = () => {
         onPasteAndCheck={copyAndCheck}
         onShowHistory={() => setShowHistory(true)}
         onShowSettings={() => setShowSettings(true)}
+        onShowStats={() => setShowStats(true)}
         isLoading={isLoading}
+        isRateLimited={rateLimitStatus?.rate_limited}
       />
+
+      {/* Rate Limit Warning */}
+      {rateLimitStatus?.rate_limited && (
+        <div style={{
+          background: "rgba(255, 100, 100, 0.15)",
+          border: "1px solid rgba(255, 100, 100, 0.4)",
+          borderRadius: 8,
+          padding: "10px 12px",
+          margin: "8px 16px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>⏳</span>
+          <div>
+            <div style={{ color: "#ff6b6b", fontSize: 12, fontWeight: "bold" }}>
+              Rate Limited
+            </div>
+            <div style={{ color: "#aaa", fontSize: 11 }}>
+              Trade API blocked. Try again at {rateLimitStatus.until}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -627,30 +708,32 @@ export const PriceCheckContent: FC = () => {
           </div>
 
           <div
-            onClick={isLoading ? undefined : reSearch}
+            onClick={(isLoading || rateLimitStatus?.rate_limited) ? undefined : reSearch}
             style={{
-              background: "linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,180,0,0.1) 100%)",
-              border: "1px solid rgba(255,215,0,0.3)",
+              background: rateLimitStatus?.rate_limited
+                ? "linear-gradient(135deg, rgba(255,100,100,0.2) 0%, rgba(255,80,80,0.1) 100%)"
+                : "linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,180,0,0.1) 100%)",
+              border: `1px solid ${rateLimitStatus?.rate_limited ? "rgba(255,100,100,0.3)" : "rgba(255,215,0,0.3)"}`,
               borderTop: "none",
               borderRadius: "0 0 8px 8px",
               padding: "10px 12px",
-              cursor: isLoading ? "not-allowed" : "pointer",
-              opacity: isLoading ? 0.5 : 1,
+              cursor: (isLoading || rateLimitStatus?.rate_limited) ? "not-allowed" : "pointer",
+              opacity: (isLoading || rateLimitStatus?.rate_limited) ? 0.5 : 1,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
             }}
           >
-            <FaSync style={{ color: "#ffd700" }} />
-            <span style={{ color: "#ffd700", fontWeight: "bold", fontSize: 12 }}>
-              Search ({modifiers.filter(m => m.enabled).length} filters)
+            <FaSync style={{ color: rateLimitStatus?.rate_limited ? "#ff6b6b" : "#ffd700" }} />
+            <span style={{ color: rateLimitStatus?.rate_limited ? "#ff6b6b" : "#ffd700", fontWeight: "bold", fontSize: 12 }}>
+              {rateLimitStatus?.rate_limited ? "Rate Limited" : `Search (${modifiers.filter(m => m.enabled).length} filters)`}
             </span>
           </div>
         </div>
       )}
 
-      {tieredResult && <TieredPriceDisplay result={tieredResult} item={parsedItem} />}
+      {tieredResult && <TieredPriceDisplay result={tieredResult} item={parsedItem} itemEvaluation={itemEvaluation} />}
     </>
   );
 };
