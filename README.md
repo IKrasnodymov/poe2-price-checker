@@ -12,8 +12,11 @@ A Steam Deck plugin for checking Path of Exile 2 item prices directly in Gaming 
 - **Scan History**: View all previously scanned items with price dynamics over time
 - **Modifier Filtering**: Toggle modifiers to refine price search
 - **Item Quality Rating**: Automatic tier evaluation for modifiers (T1-T5+) with quality rating
-- **Market Stats**: Track hot mod categories and item class prices from your scans
+- **Market Stats**: Track hot modifier patterns and item class prices from your scans
 - **Rate Limit Indicator**: Visual warning when Trade API is rate limited with countdown
+- **DPS Breakdown**: Physical, elemental, and total DPS display for weapons
+- **Multi-Currency Display**: See prices in all currencies (chaos, divine, exalted) with sorting
+- **Socket Filtering**: Smart socket/link filtering for weapons and armor
 - **League Selection**: Choose your current league in settings
 
 ## Item Quality System
@@ -42,12 +45,27 @@ Tier data is sourced from [poe2db.tw](https://poe2db.tw/) and covers 98+ modifie
 
 Access via **Menu → Market Stats** to see:
 
-- **Learning Data**: Total scanned items and item types
-- **Hot Mod Categories**: Which mod categories appear in expensive items
+- **Learning Data**: Total scanned items and item types tracked
+- **Hot Modifier Patterns**: Detailed analysis of which modifier patterns appear in expensive items, with:
+  - Tier distribution bars (T1-T5+ breakdown)
+  - Price statistics (min/avg/max in exalted)
+  - Occurrence count across all scans
 - **Item Class Prices**: Average prices by item type (boots, gloves, etc.)
-- **Top Scanned Items**: Your most valuable scanned items
+- **Top Scanned Items**: Your most valuable scanned items with quality scores
 
-Data is collected from all scans to build statistics over time.
+Data is collected from ALL scans (not just exact matches) to build comprehensive statistics over time.
+
+## Weapon DPS Display
+
+For weapons, the plugin shows detailed damage breakdown:
+
+- **Physical DPS (pDPS)**: White damage calculation
+- **Elemental DPS (eDPS)**: Combined fire, cold, lightning, chaos damage
+- **Total DPS**: Sum of pDPS + eDPS
+- **Attack Speed**: Attacks per second
+- **Critical Hit Chance**: Base crit percentage
+
+DPS is calculated as: `(min + max) / 2 × attack_speed`
 
 ## Requirements
 
@@ -230,7 +248,9 @@ Click **"Show Debug Info"** in Settings to see:
 │  - Tiered search: exact → your item → similar → base│
 │  - Calls poe2scout API for uniques/currency        │
 │  - Calls Trade API for rares/magic                 │
-│  - Scan history with price dynamics                │
+│  - Socket/link filtering for weapons/armor         │
+│  - Price learning: records all scans to stats      │
+│  - Rate limiting with adaptive delays              │
 │  - Smart caching for instant results               │
 └──────────────────────┬──────────────────────────────┘
                        ▼
@@ -238,9 +258,10 @@ Click **"Show Debug Info"** in Settings to see:
 │  React Frontend (index.tsx)                         │
 │  - Auto-checks clipboard on open                   │
 │  - Cache-first: shows cached prices instantly      │
-│  - Parses item text (English only)                 │
-│  - Displays tiered search results                  │
-│  - Scan history with rescan option                 │
+│  - Parses item text with DPS calculation           │
+│  - Multi-currency price display with sorting       │
+│  - Market stats with hot modifier patterns         │
+│  - Rate limit indicator with countdown             │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -259,8 +280,10 @@ poe2-price-checker/
 ├── src/
 │   ├── index.tsx              # Main plugin entry point
 │   ├── components/            # React components
-│   │   ├── PriceCheckContent.tsx  # Main price check UI
-│   │   ├── StatsPanel.tsx     # Market stats panel
+│   │   ├── PriceCheckContent.tsx  # Main price check UI with rate limiting
+│   │   ├── StatsPanel.tsx     # Market stats with hot patterns
+│   │   ├── ItemDisplay.tsx    # Item stats, DPS, sockets display
+│   │   ├── TieredPriceDisplay.tsx # Multi-currency price display
 │   │   ├── TierBadge.tsx      # Tier and rating badges
 │   │   ├── ModifierFilterItem.tsx # Modifier with tier display
 │   │   └── ...
@@ -270,13 +293,13 @@ poe2-price-checker/
 │   │   ├── itemEvaluator.ts   # Item quality evaluation
 │   │   └── modifierMatcher.ts # Modifier matching utilities
 │   └── lib/
-│       ├── itemParser.ts      # PoE2 item text parser
-│       └── types.ts           # TypeScript definitions
+│       ├── itemParser.ts      # PoE2 item text parser with DPS calculation
+│       └── types.ts           # TypeScript definitions (ModPattern, HotPattern)
 ├── data/
 │   └── modifier_tiers.json    # Tier data from poe2db.tw (98+ mods)
 ├── scripts/
 │   └── parse_poe2db.py        # Parser for updating tier data
-├── main.py                    # Python backend
+├── main.py                    # Python backend with price learning
 ├── plugin.json                # Plugin metadata
 ├── package.json               # Node dependencies
 ├── rollup.config.js           # Build configuration
