@@ -14,9 +14,10 @@ import {
   TieredSearchResult,
   ScanHistoryRecord,
   ScanHistoryResult,
+  ModPattern,
 } from "../lib/types";
 import { parseItemText, getAllModifiers } from "../lib/itemParser";
-import { formatPrice, matchModifier, getModifierPriority } from "../utils/modifierMatcher";
+import { formatPrice, matchModifier, getModifierPriority, normalizeModifierText } from "../utils/modifierMatcher";
 import { calculatePriceStats } from "../utils/formatting";
 import { RARITY_COLORS, ERROR_CONTAINER } from "../styles/constants";
 
@@ -222,12 +223,28 @@ export const PriceCheckContent: FC = () => {
             if (isTierDataLoaded()) {
               try {
                 const itemEval = evaluateItem(item);
-                const modCategories = itemEval.modifierBreakdown
+
+                // Extract detailed modifier patterns with tier info
+                const modPatterns: ModPattern[] = itemEval.modifierBreakdown
                   .filter(m => m.category)
-                  .map(m => m.category as string);
+                  .map(m => {
+                    // Extract primary numeric value from modifier text
+                    const numMatch = m.text.match(/(\d+(?:\.\d+)?)/);
+                    const value = numMatch ? parseFloat(numMatch[1]) : undefined;
+
+                    return {
+                      pattern: normalizeModifierText(m.text),
+                      tier: m.tier,
+                      category: m.category as string,
+                      value: value,
+                    };
+                  });
+
+                // Keep legacy categories for backwards compatibility
+                const modCategories = modPatterns.map(m => m.category);
 
                 await call<
-                  [string, string, number, string[], number, string, number],
+                  [string, string, number, string[], ModPattern[], number, string, number],
                   { success: boolean }
                 >(
                   "add_price_learning_record",
@@ -235,6 +252,7 @@ export const PriceCheckContent: FC = () => {
                   item.basetype,
                   itemEval.overallScore,
                   modCategories,
+                  modPatterns,
                   stats.median,
                   stats.currency,
                   result.stopped_at_tier

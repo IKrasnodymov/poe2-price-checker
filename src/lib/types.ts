@@ -275,6 +275,49 @@ export interface ScanHistoryResult {
   error?: string;
 }
 
+// =========================================================================
+// PRICE LEARNING TYPES
+// =========================================================================
+
+/**
+ * Detailed modifier pattern for statistics tracking.
+ * Stores specific patterns like "# to maximum Life" instead of generic "life".
+ */
+export interface ModPattern {
+  pattern: string;      // Normalized pattern, e.g., "# to maximum Life"
+  tier: number | null;  // Tier number (1-5+), null if unknown
+  category: string;     // Generic category for grouping
+  value?: number;       // Primary numeric value extracted from modifier
+}
+
+/**
+ * Hot pattern statistics from price learning data.
+ */
+export interface HotPattern {
+  pattern: string;
+  display_name: string;
+  category: string;
+  count: number;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  tier_distribution: {
+    T1: number;
+    T2: number;
+    T3: number;
+    T4: number;
+    "T5+": number;
+  };
+  avg_tier: number | null;
+}
+
+export interface HotPatternsResult {
+  success: boolean;
+  patterns?: HotPattern[];
+  total_patterns?: number;
+  error?: string;
+}
+
 export interface PriceDynamicsEntry {
   timestamp: number;
   price: number;

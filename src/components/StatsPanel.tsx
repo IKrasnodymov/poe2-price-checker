@@ -5,6 +5,7 @@ import { FC, useState, useEffect } from "react";
 import { PanelSection, PanelSectionRow, Spinner } from "@decky/ui";
 import { call } from "@decky/api";
 import { FaChartLine, FaFire, FaTrophy, FaArrowLeft } from "react-icons/fa";
+import { HotPattern, HotPatternsResult } from "../lib/types";
 
 interface MarketInsights {
   success: boolean;
@@ -46,9 +47,62 @@ interface StatsPanelProps {
   onBack: () => void;
 }
 
+// Tier distribution bar component
+const TierDistributionBar: FC<{ distribution: Record<string, number> }> = ({ distribution }) => {
+  const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+  if (total === 0) return null;
+
+  const colors: Record<string, string> = {
+    "T1": "#40c057",
+    "T2": "#69db7c",
+    "T3": "#fab005",
+    "T4": "#fcc419",
+    "T5+": "#868e96"
+  };
+
+  return (
+    <div style={{ display: "flex", height: 4, borderRadius: 2, overflow: "hidden", marginTop: 4 }}>
+      {Object.entries(distribution).map(([tier, count]) => (
+        count > 0 && (
+          <div
+            key={tier}
+            style={{
+              width: `${(count / total) * 100}%`,
+              background: colors[tier] || "#666",
+            }}
+            title={`${tier}: ${count}`}
+          />
+        )
+      ))}
+    </div>
+  );
+};
+
+// Category icon helper
+const getCategoryIcon = (category: string | null): string => {
+  const icons: Record<string, string> = {
+    life: "❤️",
+    resistance: "🛡️",
+    damage: "⚔️",
+    critical: "💥",
+    speed: "⚡",
+    attribute: "💪",
+    defence: "🔰",
+    defense: "🔰",
+    mana: "💧",
+    accuracy: "🎯",
+    gem: "💎",
+    caster: "✨",
+    attack: "🗡️",
+    flask: "🧪",
+  };
+  return icons[category?.toLowerCase() || ""] || "📊";
+};
+
 export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
   const [insights, setInsights] = useState<MarketInsights | null>(null);
   const [learningStats, setLearningStats] = useState<LearningStats | null>(null);
+  const [hotPatterns, setHotPatterns] = useState<HotPatternsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
 
@@ -67,12 +121,14 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const [insightsResult, statsResult] = await Promise.all([
+      const [insightsResult, statsResult, patternsResult] = await Promise.all([
         call<[], MarketInsights>("get_market_insights"),
         call<[], LearningStats>("get_learning_stats"),
+        call<[number], HotPatternsResult>("get_hot_patterns", 10),
       ]);
       setInsights(insightsResult);
       setLearningStats(statsResult);
+      setHotPatterns(patternsResult);
     } catch (e) {
       console.error("Failed to load stats:", e);
     }
@@ -171,8 +227,68 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* Hot Mods Section */}
-      {insights?.success && insights.hot_mods && insights.hot_mods.length > 0 && (
+      {/* Hot Modifiers Section - Specific Patterns with Full Stats */}
+      {hotPatterns?.success && hotPatterns.patterns && hotPatterns.patterns.length > 0 && (
+        <div style={{
+          background: "rgba(255,100,100,0.1)",
+          border: "1px solid rgba(255,100,100,0.3)",
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 12,
+        }}>
+          <div style={{
+            fontSize: 11,
+            color: "#ff6b6b",
+            marginBottom: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}>
+            <FaFire />
+            Hot Modifiers
+          </div>
+          {hotPatterns.patterns.slice(0, 5).map((pat, i) => (
+            <div
+              key={pat.pattern}
+              style={{
+                padding: "6px 0",
+                borderBottom: i < 4 ? "1px solid rgba(255,255,255,0.05)" : "none",
+              }}
+            >
+              {/* Pattern name with category icon and price */}
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+                <span style={{ fontSize: 11, color: "#ddd" }}>
+                  {getCategoryIcon(pat.category)} {pat.display_name}
+                </span>
+                <span style={{ fontSize: 12, color: "#ffd700", fontWeight: "bold" }}>
+                  {pat.avg_price}ex
+                </span>
+              </div>
+              {/* Stats row: count, price range, avg tier */}
+              <div style={{
+                display: "flex",
+                gap: 8,
+                fontSize: 9,
+                color: "#666",
+                marginTop: 2,
+              }}>
+                <span>{pat.count}×</span>
+                <span>{pat.min_price}-{pat.max_price}ex</span>
+                {pat.avg_tier && <span>T{pat.avg_tier}</span>}
+              </div>
+              {/* Tier distribution bar */}
+              <TierDistributionBar distribution={pat.tier_distribution} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Fallback: Legacy Hot Mod Categories (if no patterns available) */}
+      {(!hotPatterns?.success || !hotPatterns.patterns?.length) && insights?.success && insights.hot_mods && insights.hot_mods.length > 0 && (
         <div style={{
           background: "rgba(255,100,100,0.1)",
           border: "1px solid rgba(255,100,100,0.3)",

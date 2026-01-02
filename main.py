@@ -999,6 +999,7 @@ class Plugin:
         base_type: str,
         quality_score: int,
         mod_categories: List[str],
+        mod_patterns: List[Dict[str, Any]],
         price: float,
         currency: str,
         search_tier: int
@@ -1006,6 +1007,9 @@ class Plugin:
         """
         Add a price learning record for all scans.
         This helps build statistics and price estimates.
+
+        mod_patterns: List of detailed modifier patterns with tier info
+            [{pattern: str, tier: int|None, category: str, value: int|None}]
         """
         import decky
 
@@ -1018,6 +1022,7 @@ class Plugin:
             "base_type": base_type,
             "quality_score": quality_score,
             "mod_categories": mod_categories,
+            "mod_patterns": mod_patterns,
             "price": price,
             "currency": currency,
             "search_tier": search_tier
@@ -1210,6 +1215,116 @@ class Plugin:
             "item_class_stats": class_stats[:10],  # Top 10 item classes
             "top_items": top_items,
             "last_updated": int(time.time())
+        }
+
+    async def get_hot_patterns(self, limit: int = 15) -> Dict[str, Any]:
+        """
+        Get hot modifier patterns with full statistics.
+        Returns specific patterns like "+X to maximum Life" instead of generic "life".
+        Includes tier distribution and price statistics.
+        """
+        import decky
+        from collections import defaultdict
+
+        if not Plugin.price_learning:
+            return {"success": False, "error": "No data", "patterns": []}
+
+        # Aggregate by pattern
+        pattern_stats = defaultdict(lambda: {
+            "prices": [],
+            "tiers": [],
+            "category": None,
+            "count": 0
+        })
+
+        total_records = 0
+        for item_class, records in Plugin.price_learning.items():
+            for record in records:
+                total_records += 1
+                mod_patterns = record.get("mod_patterns", [])
+
+                # Normalize price to exalted for comparison
+                raw_price = record.get("price", 0)
+                currency = record.get("currency", "exalted").lower()
+                if currency in ["divine", "div"]:
+                    price = raw_price * 0.5  # Divine ≈ 0.5 ex
+                elif currency in ["chaos", "c"]:
+                    price = raw_price / 100.0  # 100 chaos ≈ 1 ex
+                else:
+                    price = raw_price
+
+                for mp in mod_patterns:
+                    pattern = mp.get("pattern", "")
+                    if not pattern:
+                        continue
+                    pattern_stats[pattern]["prices"].append(price)
+                    tier = mp.get("tier")
+                    if tier is not None:
+                        pattern_stats[pattern]["tiers"].append(tier)
+                    if mp.get("category"):
+                        pattern_stats[pattern]["category"] = mp.get("category")
+                    pattern_stats[pattern]["count"] += 1
+
+                # Fallback: use generic categories for old records without mod_patterns
+                if not mod_patterns and record.get("mod_categories"):
+                    for cat in record.get("mod_categories", []):
+                        fallback_pattern = f"[{cat}]"
+                        pattern_stats[fallback_pattern]["prices"].append(price)
+                        pattern_stats[fallback_pattern]["category"] = cat
+                        pattern_stats[fallback_pattern]["count"] += 1
+
+        if total_records < 5:
+            return {"success": False, "error": f"Need 5+ records (have {total_records})", "patterns": []}
+
+        # Calculate full stats for each pattern
+        hot_patterns = []
+        for pattern, stats in pattern_stats.items():
+            if stats["count"] < 2:
+                continue
+
+            prices = stats["prices"]
+            tiers = [t for t in stats["tiers"] if t and t > 0]
+
+            # Tier distribution
+            tier_dist = {"T1": 0, "T2": 0, "T3": 0, "T4": 0, "T5+": 0}
+            for t in tiers:
+                if t == 1:
+                    tier_dist["T1"] += 1
+                elif t == 2:
+                    tier_dist["T2"] += 1
+                elif t == 3:
+                    tier_dist["T3"] += 1
+                elif t == 4:
+                    tier_dist["T4"] += 1
+                else:
+                    tier_dist["T5+"] += 1
+
+            # Format display name: "# to maximum Life" -> "+X to Maximum Life"
+            display_name = pattern.replace("#", "X")
+            if display_name.startswith("X ") or display_name.startswith("X%"):
+                display_name = "+" + display_name
+
+            hot_patterns.append({
+                "pattern": pattern,
+                "display_name": display_name,
+                "category": stats["category"],
+                "count": stats["count"],
+                "avg_price": round(sum(prices) / len(prices), 1),
+                "min_price": round(min(prices), 1),
+                "max_price": round(max(prices), 1),
+                "tier_distribution": tier_dist,
+                "avg_tier": round(sum(tiers) / len(tiers), 1) if tiers else None
+            })
+
+        # Sort by count * avg_price (popularity weighted by value)
+        hot_patterns.sort(key=lambda x: x["count"] * x["avg_price"], reverse=True)
+
+        decky.logger.info(f"Hot patterns: {len(hot_patterns)} patterns from {total_records} records")
+
+        return {
+            "success": True,
+            "patterns": hot_patterns[:limit],
+            "total_patterns": len(hot_patterns)
         }
 
     async def get_learning_stats(self) -> Dict[str, Any]:
