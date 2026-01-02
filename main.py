@@ -1747,15 +1747,28 @@ class Plugin:
             currency_counts[curr] = currency_counts.get(curr, 0) + 1
         decky.logger.info(f"Currency breakdown: {currency_counts}")
 
-        # Sort by amount (simple, no currency conversion)
-        all_listings.sort(key=lambda x: x.get("amount", 0) or 0)
+        # Helper function to convert price to chaos for sorting
+        def get_chaos_value(listing):
+            amount = listing.get("amount", 0) or 0
+            currency = listing.get("currency", "chaos")
+            if currency:
+                currency = currency.lower()
+            rate = Plugin.currency_rates.get(currency, 1.0)
+            return amount * rate
+
+        # Add chaosValue to each listing for frontend use
+        for lst in all_listings:
+            lst["chaosValue"] = get_chaos_value(lst)
+
+        # Sort by chaos value (proper price comparison across currencies)
+        all_listings.sort(key=get_chaos_value)
 
         # Store first 5 listings for debug
         Plugin.last_debug_listings = all_listings[:5] if all_listings else []
 
-        # Log first 3 after sorting
+        # Log first 3 after sorting with chaos values
         for i, lst in enumerate(all_listings[:3]):
-            decky.logger.info(f"Listing {i+1}: {lst.get('amount')} {lst.get('currency')}")
+            decky.logger.info(f"Listing {i+1}: {lst.get('amount')} {lst.get('currency')} (~{lst.get('chaosValue', 0):.1f}c)")
 
         return {
             "success": True,
@@ -1834,7 +1847,9 @@ class Plugin:
         item_name: Optional[str],
         base_type: Optional[str],
         modifiers: List[Dict[str, Any]],
-        item_level: Optional[int] = None
+        item_level: Optional[int] = None,
+        socket_count: Optional[int] = None,
+        linked_sockets: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Build Trade API query for a specific search tier.
@@ -1874,6 +1889,18 @@ class Plugin:
                     "ilvl": {"min": min_ilvl}
                 }
             }
+
+        # Add socket filters (only for items with 3+ sockets or 3+ links - significant items)
+        if socket_count and socket_count >= 3:
+            socket_filters = {}
+            # Filter by minimum sockets (allow -1 for flexibility)
+            socket_filters["sockets"] = {"min": max(1, socket_count - 1)}
+            # Filter by links if item has significant links (3+)
+            if linked_sockets and linked_sockets >= 3:
+                socket_filters["links"] = {"min": max(1, linked_sockets - 1)}
+            if socket_filters:
+                query["query"]["filters"]["socket_filters"] = {"filters": socket_filters}
+                decky.logger.info(f"Socket filters: sockets>={socket_count-1}, links>={linked_sockets-1 if linked_sockets and linked_sockets >= 3 else 'none'}")
 
         # Tier-specific logic
         if tier == 0:
@@ -1963,7 +1990,9 @@ class Plugin:
         base_type: Optional[str],
         rarity: str,
         modifiers: List[Dict[str, Any]],
-        item_level: Optional[int] = None
+        item_level: Optional[int] = None,
+        socket_count: Optional[int] = None,
+        linked_sockets: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Progressive tiered search with smart early stopping, caching, and retry logic.
@@ -1979,6 +2008,7 @@ class Plugin:
         - Retries on 429 rate limit errors
         - Stops early if enough results found
         - Uses poe2scout for uniques/currency
+        - Socket/link filtering for weapons and armour
         """
         import decky
         decky.logger.info(f"Progressive search: {item_name or base_type}, {len(modifiers)} mods")
@@ -2057,7 +2087,8 @@ class Plugin:
             try:
                 # Build query for this tier
                 query = await Plugin.build_tiered_query(
-                    self, tier, search_name, search_type, modifiers, item_level
+                    self, tier, search_name, search_type, modifiers, item_level,
+                    socket_count, linked_sockets
                 )
 
                 # Skip tier 0, 1, 2 if no modifiers

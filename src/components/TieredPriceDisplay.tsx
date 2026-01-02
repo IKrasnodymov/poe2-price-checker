@@ -10,7 +10,7 @@ import { call } from "@decky/api";
 import { FaCopy } from "react-icons/fa";
 import { ParsedItem, TieredSearchResult, SearchTier } from "../lib/types";
 import { formatPrice, getBestPrice } from "../utils/modifierMatcher";
-import { formatIndexedTimeCompact, calculatePriceStats, PriceStats } from "../utils/formatting";
+import { formatIndexedTimeCompact, calculatePriceStats, calculateStatsByCurrency, PriceStats } from "../utils/formatting";
 import { TIER_COLORS } from "../styles/constants";
 import { ItemEvaluation } from "../utils/itemEvaluator";
 
@@ -35,12 +35,20 @@ const getTierLabel = (tierNum: number): string => {
   return "BASE";
 };
 
-// Calculate price stats for a tier
-const getTierStats = (tier: SearchTier): PriceStats | null => {
+// Calculate price stats for a tier (returns main stats and all currency breakdowns)
+interface TierStatsResult {
+  main: PriceStats | null;
+  byCurrency: PriceStats[];
+}
+
+const getTierStats = (tier: SearchTier): TierStatsResult => {
   if (!tier.listings || tier.listings.length === 0) {
-    return null;
+    return { main: null, byCurrency: [] };
   }
-  return calculatePriceStats(tier.listings);
+  return {
+    main: calculatePriceStats(tier.listings),
+    byCurrency: calculateStatsByCurrency(tier.listings),
+  };
 };
 
 export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEvaluation }) => {
@@ -191,9 +199,11 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
 
       {/* Tiered results */}
       {result.tiers.map((tier) => {
-        const stats = getTierStats(tier);
+        const { main: stats, byCurrency } = getTierStats(tier);
         const tierColor = getTierColor(tier.tier);
         const isExpanded = expandedTiers.has(tier.tier);
+        // Check if there are multiple currencies
+        const hasMultipleCurrencies = byCurrency.length > 1;
 
         return (
           <div
@@ -237,6 +247,20 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
                     <div style={{ fontSize: 10, color: "#666" }}>
                       Med: {formatPrice(stats.median, stats.currency)} • Avg: {formatPrice(stats.average, stats.currency)} • {tier.total} listings
                     </div>
+                    {/* Show other currencies if available */}
+                    {hasMultipleCurrencies && (
+                      <div style={{ fontSize: 9, color: "#555", marginTop: 2 }}>
+                        {byCurrency
+                          .filter(c => c.currency !== stats.currency)
+                          .slice(0, 2)
+                          .map((c, i) => (
+                            <span key={c.currency}>
+                              {i > 0 && " • "}
+                              {formatPrice(c.median, c.currency)} ({c.count})
+                            </span>
+                          ))}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div style={{ fontSize: 12, color: "#666" }}>

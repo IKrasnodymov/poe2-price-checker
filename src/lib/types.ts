@@ -40,7 +40,10 @@ export interface ParsedItem {
   elementalDamage?: { type: string; min: number; max: number }[];
   attackSpeed?: number;
   criticalChance?: number;
-  dps?: number;
+  weaponRange?: number;
+  dps?: number;         // Physical DPS
+  elemDps?: number;     // Elemental DPS
+  totalDps?: number;    // Total DPS (physical + elemental)
 
   // Modifiers
   implicitMods: ItemModifier[];

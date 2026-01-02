@@ -208,15 +208,31 @@ export const ItemDisplay: FC<ItemDisplayProps> = ({ item }) => {
               )}
 
               {/* APS, Crit, DPS */}
-              <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#888" }}>
+              <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#888", flexWrap: "wrap" }}>
                 {item.attackSpeed && <span>APS: {item.attackSpeed}</span>}
                 {item.criticalChance && <span>Crit: {item.criticalChance}%</span>}
-                {item.dps && (
-                  <span style={{ color: "#ffd700", fontWeight: "bold" }}>
-                    DPS: {item.dps}
-                  </span>
-                )}
+                {item.weaponRange && <span>Range: {item.weaponRange}</span>}
               </div>
+              {/* DPS breakdown */}
+              {(item.dps || item.elemDps || item.totalDps) && (
+                <div style={{ display: "flex", gap: 12, fontSize: 11, marginTop: 4, flexWrap: "wrap" }}>
+                  {item.dps && (
+                    <span style={{ color: "#ccc" }}>
+                      pDPS: {item.dps}
+                    </span>
+                  )}
+                  {item.elemDps && (
+                    <span style={{ color: "#ff9500" }}>
+                      eDPS: {item.elemDps}
+                    </span>
+                  )}
+                  {item.totalDps && (
+                    <span style={{ color: "#ffd700", fontWeight: "bold" }}>
+                      Total: {item.totalDps}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

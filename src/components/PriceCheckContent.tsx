@@ -153,7 +153,7 @@ export const PriceCheckContent: FC = () => {
       }));
 
     const result = await call<
-      [string | null, string | null, string, typeof modsWithIds, number | null],
+      [string | null, string | null, string, typeof modsWithIds, number | null, number | null, number | null],
       TieredSearchResult
     >(
       "progressive_search",
@@ -161,7 +161,9 @@ export const PriceCheckContent: FC = () => {
       item.basetype,
       item.rarity,
       modsWithIds,
-      item.itemLevel || null
+      item.itemLevel || null,
+      item.socketCount || null,
+      item.linkedSockets || null
     );
 
     setTieredResult(result);

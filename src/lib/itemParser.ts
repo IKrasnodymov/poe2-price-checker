@@ -159,11 +159,18 @@ function parseSection(
     return;
   }
 
-  // Level (gems)
+  // Level (gems) - may have multiple lines with Level and Quality
   if (firstLine.startsWith("Level:") && item.rarity === "Gem") {
     const match = firstLine.match(/Level:\s*(\d+)/);
     if (match) {
       item.gemLevel = parseInt(match[1]);
+    }
+    // Check other lines in this section for Quality
+    for (const line of lines) {
+      const qualMatch = line.match(/Quality:\s*\+?(\d+)%/);
+      if (qualMatch) {
+        item.gemQuality = parseInt(qualMatch[1]);
+      }
     }
     return;
   }
@@ -322,6 +329,66 @@ function parseProperties(lines: string[], item: ParsedItem): void {
       continue;
     }
 
+    // Elemental Damage: 45-89 (combined elemental shown on some items)
+    const elemMatch = line.match(/Elemental Damage:\s*(\d+)-(\d+)/);
+    if (elemMatch) {
+      if (!item.elementalDamage) item.elementalDamage = [];
+      item.elementalDamage.push({
+        type: "elemental",
+        min: parseInt(elemMatch[1]),
+        max: parseInt(elemMatch[2]),
+      });
+      continue;
+    }
+
+    // Fire Damage: 10-20
+    const fireMatch = line.match(/Fire Damage:\s*(\d+)-(\d+)/);
+    if (fireMatch) {
+      if (!item.elementalDamage) item.elementalDamage = [];
+      item.elementalDamage.push({
+        type: "fire",
+        min: parseInt(fireMatch[1]),
+        max: parseInt(fireMatch[2]),
+      });
+      continue;
+    }
+
+    // Cold Damage: 15-25
+    const coldMatch = line.match(/Cold Damage:\s*(\d+)-(\d+)/);
+    if (coldMatch) {
+      if (!item.elementalDamage) item.elementalDamage = [];
+      item.elementalDamage.push({
+        type: "cold",
+        min: parseInt(coldMatch[1]),
+        max: parseInt(coldMatch[2]),
+      });
+      continue;
+    }
+
+    // Lightning Damage: 1-50
+    const lightningMatch = line.match(/Lightning Damage:\s*(\d+)-(\d+)/);
+    if (lightningMatch) {
+      if (!item.elementalDamage) item.elementalDamage = [];
+      item.elementalDamage.push({
+        type: "lightning",
+        min: parseInt(lightningMatch[1]),
+        max: parseInt(lightningMatch[2]),
+      });
+      continue;
+    }
+
+    // Chaos Damage: 20-30
+    const chaosMatch = line.match(/Chaos Damage:\s*(\d+)-(\d+)/);
+    if (chaosMatch) {
+      if (!item.elementalDamage) item.elementalDamage = [];
+      item.elementalDamage.push({
+        type: "chaos",
+        min: parseInt(chaosMatch[1]),
+        max: parseInt(chaosMatch[2]),
+      });
+      continue;
+    }
+
     // Armour: 457
     const armourMatch = line.match(/Armour:\s*(\d+)/);
     if (armourMatch) {
@@ -354,6 +421,13 @@ function parseProperties(lines: string[], item: ParsedItem): void {
     const critMatch = line.match(/Critical Hit Chance:\s*([\d.]+)%/);
     if (critMatch) {
       item.criticalChance = parseFloat(critMatch[1]);
+      continue;
+    }
+
+    // Weapon Range: 13
+    const rangeMatch = line.match(/Weapon Range:\s*([\d.]+)/);
+    if (rangeMatch) {
+      item.weaponRange = parseFloat(rangeMatch[1]);
       continue;
     }
   }
@@ -434,16 +508,35 @@ function extractModifierValues(text: string): number[] {
 }
 
 /**
- * Calculate DPS for weapons
+ * Calculate DPS for weapons (physical, elemental, and total)
  */
 function calculateDPS(item: ParsedItem): void {
-  if (!item.attackSpeed || !item.physicalDamage) {
+  if (!item.attackSpeed) {
     return;
   }
 
-  const avgPhys =
-    (item.physicalDamage.min + item.physicalDamage.max) / 2;
-  item.dps = Math.round(avgPhys * item.attackSpeed * 10) / 10;
+  // Calculate physical DPS
+  let physDps = 0;
+  if (item.physicalDamage) {
+    const avgPhys = (item.physicalDamage.min + item.physicalDamage.max) / 2;
+    physDps = avgPhys * item.attackSpeed;
+    item.dps = Math.round(physDps * 10) / 10;
+  }
+
+  // Calculate elemental DPS (sum of all elemental damage types)
+  let elemDps = 0;
+  if (item.elementalDamage && item.elementalDamage.length > 0) {
+    for (const elem of item.elementalDamage) {
+      const avgElem = (elem.min + elem.max) / 2;
+      elemDps += avgElem * item.attackSpeed;
+    }
+    item.elemDps = Math.round(elemDps * 10) / 10;
+  }
+
+  // Calculate total DPS
+  if (physDps > 0 || elemDps > 0) {
+    item.totalDps = Math.round((physDps + elemDps) * 10) / 10;
+  }
 }
 
 /**
