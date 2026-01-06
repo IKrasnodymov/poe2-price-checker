@@ -34,6 +34,8 @@ export interface ParsedItem {
   armour?: number;
   evasion?: number;
   energyShield?: number;
+  block?: number;
+  spirit?: number;
 
   // Weapon stats
   physicalDamage?: { min: number; max: number };

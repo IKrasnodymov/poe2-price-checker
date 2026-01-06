@@ -410,6 +410,20 @@ function parseProperties(lines: string[], item: ParsedItem): void {
       continue;
     }
 
+    // Block: 15% or Chance to Block: 15%
+    const blockMatch = line.match(/(?:Chance to )?Block:\s*(\d+)%/);
+    if (blockMatch) {
+      item.block = parseInt(blockMatch[1]);
+      continue;
+    }
+
+    // Spirit: 100
+    const spiritMatch = line.match(/Spirit:\s*(\d+)/);
+    if (spiritMatch) {
+      item.spirit = parseInt(spiritMatch[1]);
+      continue;
+    }
+
     // Attacks per Second: 1.45
     const apsMatch = line.match(/Attacks per Second:\s*([\d.]+)/);
     if (apsMatch) {

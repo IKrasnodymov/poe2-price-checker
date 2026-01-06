@@ -153,7 +153,7 @@ export const PriceCheckContent: FC = () => {
       }));
 
     const result = await call<
-      [string | null, string | null, string, typeof modsWithIds, number | null, number | null, number | null],
+      [string | null, string | null, string, typeof modsWithIds, number | null, number | null, number | null, number | null, number | null, number | null, number | null, number | null, number | null, number | null, number | null, number | null, number | null, number | null, boolean | null],
       TieredSearchResult
     >(
       "progressive_search",
@@ -163,7 +163,20 @@ export const PriceCheckContent: FC = () => {
       modsWithIds,
       item.itemLevel || null,
       item.socketCount || null,
-      item.linkedSockets || null
+      item.linkedSockets || null,
+      item.dps || null,           // pDPS
+      item.elemDps || null,       // eDPS
+      item.gemLevel || null,      // Gem level
+      // New filters
+      item.quality || null,       // Quality
+      item.armour || null,        // Armour
+      item.evasion || null,       // Evasion
+      item.energyShield || null,  // Energy Shield
+      item.block || null,         // Block
+      item.spirit || null,        // Spirit
+      item.attackSpeed || null,   // Attack Speed
+      item.criticalChance || null,// Crit Chance
+      item.corrupted || null      // Corrupted
     );
 
     setTieredResult(result);

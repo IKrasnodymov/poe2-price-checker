@@ -1849,7 +1849,20 @@ class Plugin:
         modifiers: List[Dict[str, Any]],
         item_level: Optional[int] = None,
         socket_count: Optional[int] = None,
-        linked_sockets: Optional[int] = None
+        linked_sockets: Optional[int] = None,
+        pdps: Optional[float] = None,
+        edps: Optional[float] = None,
+        gem_level: Optional[int] = None,
+        # New filters
+        quality: Optional[int] = None,
+        armour: Optional[int] = None,
+        evasion: Optional[int] = None,
+        energy_shield: Optional[int] = None,
+        block: Optional[int] = None,
+        spirit: Optional[int] = None,
+        attack_speed: Optional[float] = None,
+        crit_chance: Optional[float] = None,
+        corrupted: Optional[bool] = None
     ) -> Dict[str, Any]:
         """
         Build Trade API query for a specific search tier.
@@ -1880,27 +1893,110 @@ class Plugin:
         if base_type:
             query["query"]["type"] = base_type
 
-        # Add item level filter for all tiers
+        # Add item level filter (type_filters, not misc_filters)
         if item_level and item_level > 1:
-            # Use item level range: -10 to current
             min_ilvl = max(1, item_level - 10)
-            query["query"]["filters"]["misc_filters"] = {
+            query["query"]["filters"]["type_filters"] = {
                 "filters": {
                     "ilvl": {"min": min_ilvl}
                 }
             }
 
-        # Add socket filters (only for items with 3+ sockets or 3+ links - significant items)
-        if socket_count and socket_count >= 3:
-            socket_filters = {}
-            # Filter by minimum sockets (allow -1 for flexibility)
-            socket_filters["sockets"] = {"min": max(1, socket_count - 1)}
-            # Filter by links if item has significant links (3+)
-            if linked_sockets and linked_sockets >= 3:
-                socket_filters["links"] = {"min": max(1, linked_sockets - 1)}
-            if socket_filters:
-                query["query"]["filters"]["socket_filters"] = {"filters": socket_filters}
-                decky.logger.info(f"Socket filters: sockets>={socket_count-1}, links>={linked_sockets-1 if linked_sockets and linked_sockets >= 3 else 'none'}")
+        # Add rune_sockets filter for items with sockets (equipment_filters)
+        if socket_count and socket_count >= 2:
+            min_sockets = max(1, socket_count - 1)  # Flexible: allow 1 less socket
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["rune_sockets"] = {"min": min_sockets}
+            decky.logger.info(f"Socket filter: min {min_sockets} rune sockets")
+
+        # Add DPS filters for weapons (equipment_filters)
+        if pdps and pdps > 0:
+            min_pdps = int(pdps * 0.7)  # 70% of item's pDPS
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["pdps"] = {"min": min_pdps}
+            decky.logger.info(f"pDPS filter: min {min_pdps}")
+
+        if edps and edps > 0:
+            min_edps = int(edps * 0.7)  # 70% of item's eDPS
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["edps"] = {"min": min_edps}
+            decky.logger.info(f"eDPS filter: min {min_edps}")
+
+        # Add gem level filter (misc_filters)
+        if gem_level and gem_level > 1:
+            if "misc_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["misc_filters"] = {"filters": {}}
+            query["query"]["filters"]["misc_filters"]["filters"]["gem_level"] = {"min": gem_level}
+            decky.logger.info(f"Gem level filter: min {gem_level}")
+
+        # Add corrupted filter (misc_filters)
+        if corrupted is not None:
+            if "misc_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["misc_filters"] = {"filters": {}}
+            query["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {"option": str(corrupted).lower()}
+            decky.logger.info(f"Corrupted filter: {corrupted}")
+
+        # Add quality filter (type_filters) - for weapons/armour with quality > 0
+        if quality and quality > 0:
+            min_quality = max(0, quality - 5)  # Allow 5% less quality
+            if "type_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["type_filters"] = {"filters": {}}
+            query["query"]["filters"]["type_filters"]["filters"]["quality"] = {"min": min_quality}
+            decky.logger.info(f"Quality filter: min {min_quality}")
+
+        # Add defence filters (equipment_filters)
+        if armour and armour > 50:
+            min_ar = int(armour * 0.7)  # 70% of item's armour
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["ar"] = {"min": min_ar}
+            decky.logger.info(f"Armour filter: min {min_ar}")
+
+        if evasion and evasion > 50:
+            min_ev = int(evasion * 0.7)  # 70% of item's evasion
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["ev"] = {"min": min_ev}
+            decky.logger.info(f"Evasion filter: min {min_ev}")
+
+        if energy_shield and energy_shield > 30:
+            min_es = int(energy_shield * 0.7)  # 70% of item's ES
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["es"] = {"min": min_es}
+            decky.logger.info(f"Energy Shield filter: min {min_es}")
+
+        if block and block > 10:
+            min_block = int(block * 0.7)  # 70% of item's block
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["block"] = {"min": min_block}
+            decky.logger.info(f"Block filter: min {min_block}")
+
+        if spirit and spirit > 10:
+            min_spirit = int(spirit * 0.7)  # 70% of item's spirit
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["spirit"] = {"min": min_spirit}
+            decky.logger.info(f"Spirit filter: min {min_spirit}")
+
+        # Add weapon stat filters (equipment_filters)
+        if attack_speed and attack_speed > 1.0:
+            min_aps = round(attack_speed * 0.9, 2)  # 90% of item's APS
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["aps"] = {"min": min_aps}
+            decky.logger.info(f"Attack Speed filter: min {min_aps}")
+
+        if crit_chance and crit_chance > 5.0:
+            min_crit = round(crit_chance * 0.8, 1)  # 80% of item's crit
+            if "equipment_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["equipment_filters"] = {"filters": {}}
+            query["query"]["filters"]["equipment_filters"]["filters"]["crit"] = {"min": min_crit}
+            decky.logger.info(f"Crit Chance filter: min {min_crit}")
 
         # Tier-specific logic
         if tier == 0:
@@ -1992,7 +2088,20 @@ class Plugin:
         modifiers: List[Dict[str, Any]],
         item_level: Optional[int] = None,
         socket_count: Optional[int] = None,
-        linked_sockets: Optional[int] = None
+        linked_sockets: Optional[int] = None,
+        pdps: Optional[float] = None,
+        edps: Optional[float] = None,
+        gem_level: Optional[int] = None,
+        # New filters
+        quality: Optional[int] = None,
+        armour: Optional[int] = None,
+        evasion: Optional[int] = None,
+        energy_shield: Optional[int] = None,
+        block: Optional[int] = None,
+        spirit: Optional[int] = None,
+        attack_speed: Optional[float] = None,
+        crit_chance: Optional[float] = None,
+        corrupted: Optional[bool] = None
     ) -> Dict[str, Any]:
         """
         Progressive tiered search with smart early stopping, caching, and retry logic.
@@ -2008,7 +2117,11 @@ class Plugin:
         - Retries on 429 rate limit errors
         - Stops early if enough results found
         - Uses poe2scout for uniques/currency
-        - Socket/link filtering for weapons and armour
+        - Full equipment filtering (armour, evasion, ES, block, spirit)
+        - DPS filtering for weapons (pdps, edps)
+        - Weapon stats (attack speed, crit chance)
+        - Quality and corrupted filters
+        - Gem level filtering for gems
         """
         import decky
         decky.logger.info(f"Progressive search: {item_name or base_type}, {len(modifiers)} mods")
@@ -2088,7 +2201,9 @@ class Plugin:
                 # Build query for this tier
                 query = await Plugin.build_tiered_query(
                     self, tier, search_name, search_type, modifiers, item_level,
-                    socket_count, linked_sockets
+                    socket_count, linked_sockets, pdps, edps, gem_level,
+                    quality, armour, evasion, energy_shield, block, spirit,
+                    attack_speed, crit_chance, corrupted
                 )
 
                 # Skip tier 0, 1, 2 if no modifiers
