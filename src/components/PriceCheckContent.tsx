@@ -259,7 +259,8 @@ export const PriceCheckContent: FC = () => {
                 const modCategories = modPatterns.map(m => m.category);
 
                 await call<
-                  [string, string, number, string[], ModPattern[], number, string, number],
+                  [string, string, number, string[], ModPattern[], number, string, number,
+                   number | null, string, number | null, number | null, number],
                   { success: boolean }
                 >(
                   "add_price_learning_record",
@@ -270,7 +271,13 @@ export const PriceCheckContent: FC = () => {
                   modPatterns,
                   stats.median,
                   stats.currency,
-                  result.stopped_at_tier
+                  result.stopped_at_tier,
+                  // V2 fields
+                  item.itemLevel || null,
+                  item.rarity,
+                  item.socketCount || null,
+                  item.totalDps || null,
+                  tierWithMostListings.listings.length
                 );
               } catch (e) {
                 console.error("Failed to save price learning:", e);

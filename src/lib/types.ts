@@ -303,6 +303,7 @@ export interface HotPattern {
   display_name: string;
   category: string;
   count: number;
+  median_price: number;  // More robust than avg
   avg_price: number;
   min_price: number;
   max_price: number;
@@ -320,6 +321,68 @@ export interface HotPatternsResult {
   success: boolean;
   patterns?: HotPattern[];
   total_patterns?: number;
+  error?: string;
+}
+
+/**
+ * Price learning record with extended fields (v2).
+ */
+export interface PriceLearningRecord {
+  timestamp: number;
+  base_type: string;
+  quality_score: number;
+  mod_categories: string[];
+  mod_patterns: ModPattern[];
+  price: number;
+  currency: string;
+  search_tier: number;
+  // V2 fields
+  ilvl?: number;
+  rarity?: string;
+  socket_count?: number;
+  total_dps?: number;
+  listings_count: number;
+}
+
+// =========================================================================
+// PRICE TRENDS TYPES
+// =========================================================================
+
+export interface DailyMedian {
+  day: number;       // 0 = today, 1 = yesterday, etc.
+  median: number;    // Median price in exalted
+  count: number;     // Number of records
+}
+
+export interface PriceTrend {
+  item_class: string;
+  daily_data: DailyMedian[];
+  trend: "up" | "down" | "stable" | "unknown";
+  change_percent: number;
+  current_median: number;
+}
+
+export interface PriceTrendsResult {
+  success: boolean;
+  trends?: PriceTrend[];
+  period_days?: number;
+  error?: string;
+}
+
+// =========================================================================
+// QUALITY CORRELATION TYPES
+// =========================================================================
+
+export interface QualityCorrelation {
+  item_class: string;
+  correlation: number;       // Pearson coefficient (-1 to 1)
+  sample_size: number;
+  bucket_medians: Record<string, number>;  // e.g., {"0-25": 0.5, "26-50": 1.2, ...}
+}
+
+export interface QualityCorrelationResult {
+  success: boolean;
+  correlations?: QualityCorrelation[];
   error?: string;
 }
 

@@ -5,7 +5,12 @@ import { FC, useState, useEffect } from "react";
 import { PanelSection, PanelSectionRow, Spinner } from "@decky/ui";
 import { call } from "@decky/api";
 import { FaChartLine, FaFire, FaTrophy, FaArrowLeft } from "react-icons/fa";
-import { HotPattern, HotPatternsResult } from "../lib/types";
+import {
+  HotPattern,
+  HotPatternsResult,
+  PriceTrendsResult,
+  QualityCorrelationResult
+} from "../lib/types";
 
 interface MarketInsights {
   success: boolean;
@@ -38,6 +43,7 @@ interface LearningStats {
   classes: Record<string, {
     count: number;
     avg_price: number;
+    median_price: number;
     min_price: number;
     max_price: number;
   }>;
@@ -103,6 +109,8 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
   const [insights, setInsights] = useState<MarketInsights | null>(null);
   const [learningStats, setLearningStats] = useState<LearningStats | null>(null);
   const [hotPatterns, setHotPatterns] = useState<HotPatternsResult | null>(null);
+  const [priceTrends, setPriceTrends] = useState<PriceTrendsResult | null>(null);
+  const [qualityCorrelation, setQualityCorrelation] = useState<QualityCorrelationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
 
@@ -121,14 +129,18 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const [insightsResult, statsResult, patternsResult] = await Promise.all([
+      const [insightsResult, statsResult, patternsResult, trendsResult, correlationResult] = await Promise.all([
         call<[], MarketInsights>("get_market_insights"),
         call<[], LearningStats>("get_learning_stats"),
         call<[number], HotPatternsResult>("get_hot_patterns", 10),
+        call<[number], PriceTrendsResult>("get_price_trends", 7),
+        call<[], QualityCorrelationResult>("get_quality_correlation"),
       ]);
       setInsights(insightsResult);
       setLearningStats(statsResult);
       setHotPatterns(patternsResult);
+      setPriceTrends(trendsResult);
+      setQualityCorrelation(correlationResult);
     } catch (e) {
       console.error("Failed to load stats:", e);
     }
@@ -245,14 +257,14 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
             gap: 6,
           }}>
             <FaFire />
-            Hot Modifiers
+            Hot Modifiers ({hotPatterns.total_patterns} total)
           </div>
-          {hotPatterns.patterns.slice(0, 5).map((pat, i) => (
+          {hotPatterns.patterns.slice(0, 10).map((pat, i) => (
             <div
               key={pat.pattern}
               style={{
                 padding: "6px 0",
-                borderBottom: i < 4 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                borderBottom: i < 9 ? "1px solid rgba(255,255,255,0.05)" : "none",
               }}
             >
               {/* Pattern name with category icon and price */}
@@ -265,7 +277,7 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
                   {getCategoryIcon(pat.category)} {pat.display_name}
                 </span>
                 <span style={{ fontSize: 12, color: "#ffd700", fontWeight: "bold" }}>
-                  {pat.avg_price}ex
+                  {pat.median_price}ex
                 </span>
               </div>
               {/* Stats row: count, price range, avg tier */}
@@ -381,6 +393,113 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
         </div>
       )}
 
+      {/* Price Trends Section */}
+      {priceTrends?.success && priceTrends.trends && priceTrends.trends.length > 0 && (
+        <div style={{
+          background: "rgba(75,192,192,0.1)",
+          border: "1px solid rgba(75,192,192,0.3)",
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 12,
+        }}>
+          <div style={{
+            fontSize: 11,
+            color: "#4bc0c0",
+            marginBottom: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}>
+            <FaChartLine />
+            Price Trends ({priceTrends.period_days}d)
+          </div>
+          {priceTrends.trends.slice(0, 5).map((trend, i) => (
+            <div
+              key={trend.item_class}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "4px 0",
+                borderBottom: i < 4 ? "1px solid rgba(255,255,255,0.05)" : "none",
+              }}
+            >
+              <span style={{ fontSize: 11, color: "#ddd" }}>
+                {trend.item_class}
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{
+                  fontSize: 10,
+                  color: trend.trend === "up" ? "#40c057" : trend.trend === "down" ? "#ff6b6b" : "#888",
+                  fontWeight: "bold",
+                }}>
+                  {trend.trend === "up" ? "▲" : trend.trend === "down" ? "▼" : "—"}
+                  {Math.abs(trend.change_percent)}%
+                </span>
+                <span style={{ fontSize: 12, color: "#ffd700", fontWeight: "bold" }}>
+                  {trend.current_median}ex
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Quality-Price Correlation Section */}
+      {qualityCorrelation?.success && qualityCorrelation.correlations && qualityCorrelation.correlations.length > 0 && (
+        <div style={{
+          background: "rgba(153,102,255,0.1)",
+          border: "1px solid rgba(153,102,255,0.3)",
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 12,
+        }}>
+          <div style={{
+            fontSize: 11,
+            color: "#9966ff",
+            marginBottom: 8,
+          }}>
+            Quality vs Price
+          </div>
+          {qualityCorrelation.correlations.slice(0, 5).map((corr, i) => (
+            <div
+              key={corr.item_class}
+              style={{
+                padding: "4px 0",
+                borderBottom: i < 4 ? "1px solid rgba(255,255,255,0.05)" : "none",
+              }}
+            >
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}>
+                <span style={{ fontSize: 11, color: "#ddd" }}>
+                  {corr.item_class}
+                </span>
+                <span style={{
+                  fontSize: 10,
+                  color: corr.correlation > 0.5 ? "#40c057" :
+                         corr.correlation < 0.2 ? "#868e96" : "#fab005",
+                  fontWeight: "bold",
+                }}>
+                  r={corr.correlation}
+                </span>
+              </div>
+              {/* Quality bucket prices */}
+              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                {Object.entries(corr.bucket_medians).map(([bucket, median]) => (
+                  <div key={bucket} style={{ flex: 1, textAlign: "center" }}>
+                    <div style={{ fontSize: 8, color: "#666" }}>{bucket}</div>
+                    <div style={{ fontSize: 9, color: "#ffd700" }}>{median}ex</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Top Items */}
       {insights?.success && insights.top_items && insights.top_items.length > 0 && (
         <div style={{
@@ -388,6 +507,7 @@ export const StatsPanel: FC<StatsPanelProps> = ({ onBack }) => {
           border: "1px solid rgba(100,100,255,0.3)",
           borderRadius: 8,
           padding: 12,
+          marginBottom: 12,
         }}>
           <div style={{
             fontSize: 11,
