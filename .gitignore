@@ -34,5 +34,8 @@ ssh-setup.md
 # Claude Code
 .claude/
 
+# Qoder
+.qoder/
+
 # Build artifacts (keep poe2-price-checker.zip for distribution)
 # poe2-price-checker.zip is intentionally tracked for easy user download
