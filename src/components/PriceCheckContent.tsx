@@ -28,9 +28,9 @@ import { ItemDisplay } from "./ItemDisplay";
 import { ActionMenu } from "./ActionMenu";
 import { ModifierFilterItem } from "./ModifierFilterItem";
 import { TieredPriceDisplay } from "./TieredPriceDisplay";
-import { RatingBadge } from "./TierBadge";
+import { RatingBadge, ConfidenceBadge, SearchInfoBadge } from "./TierBadge";
 import { StatsPanel } from "./StatsPanel";
-import { loadModifierTierData, isTierDataLoaded, ModifierTierData } from "../data/modifierTiers";
+import { loadModifierTierData, isTierDataLoaded, ModifierTierData, matchModifierToTier } from "../data/modifierTiers";
 import { evaluateItem, ItemEvaluation } from "../utils/itemEvaluator";
 
 interface RateLimitStatus {
@@ -239,28 +239,45 @@ export const PriceCheckContent: FC = () => {
               try {
                 const itemEval = evaluateItem(item);
 
-                // Extract detailed modifier patterns with tier info
+                // Helper to extract pattern from modifier
+                const extractPattern = (m: { text: string; tier: number | null; category: string | null }) => {
+                  const numMatch = m.text.match(/(\d+(?:\.\d+)?)/);
+                  const value = numMatch ? parseFloat(numMatch[1]) : undefined;
+                  return {
+                    pattern: normalizeModifierText(m.text),
+                    tier: m.tier,
+                    category: m.category as string,
+                    value: value,
+                  };
+                };
+
+                // Extract detailed modifier patterns with tier info (explicit mods)
                 const modPatterns: ModPattern[] = itemEval.modifierBreakdown
                   .filter(m => m.category)
-                  .map(m => {
-                    // Extract primary numeric value from modifier text
-                    const numMatch = m.text.match(/(\d+(?:\.\d+)?)/);
-                    const value = numMatch ? parseFloat(numMatch[1]) : undefined;
+                  .map(extractPattern);
 
+                // Extract implicit modifier patterns (v3)
+                const implicitPatterns: ModPattern[] = item.implicitMods
+                  .map(impl => {
+                    const tierResult = matchModifierToTier(impl.text);
                     return {
-                      pattern: normalizeModifierText(m.text),
-                      tier: m.tier,
-                      category: m.category as string,
-                      value: value,
+                      pattern: normalizeModifierText(impl.text),
+                      tier: tierResult?.matchedTier || null,
+                      category: tierResult?.modifier?.category || "other",
+                      value: impl.values?.[0] || undefined,
                     };
-                  });
+                  })
+                  .filter(p => p.pattern);
 
                 // Keep legacy categories for backwards compatibility
                 const modCategories = modPatterns.map(m => m.category);
 
                 await call<
                   [string, string, number, string[], ModPattern[], number, string, number,
-                   number | null, string, number | null, number | null, number],
+                   number | null, string, number | null, number | null, number,
+                   // V3 fields
+                   number | null, number | null, number | null, number | null, number | null,
+                   number | null, number | null, number | null, ModPattern[], boolean],
                   { success: boolean }
                 >(
                   "add_price_learning_record",
@@ -277,7 +294,20 @@ export const PriceCheckContent: FC = () => {
                   item.rarity,
                   item.socketCount || null,
                   item.totalDps || null,
-                  tierWithMostListings.listings.length
+                  tierWithMostListings.listings.length,
+                  // V3 fields - defense stats
+                  item.armour || null,
+                  item.evasion || null,
+                  item.energyShield || null,
+                  item.block || null,
+                  item.spirit || null,
+                  // V3 fields - weapon breakdown
+                  item.dps || null,      // pDPS
+                  item.elemDps || null,  // eDPS
+                  // V3 fields - sockets and mods
+                  item.linkedSockets || null,
+                  implicitPatterns,
+                  item.corrupted || false
                 );
               } catch (e) {
                 console.error("Failed to save price learning:", e);
@@ -542,6 +572,23 @@ export const PriceCheckContent: FC = () => {
             {parsedItem.name || parsedItem.basetype}
           </div>
 
+          {/* Search info row */}
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 10,
+            color: "#666",
+            marginBottom: 4,
+          }}>
+            <SearchInfoBadge
+              stoppedAtTier={tieredResult.stopped_at_tier}
+              totalSearches={tieredResult.total_searches}
+            />
+          </div>
+
+          {/* Quality and confidence row */}
           <div style={{
             display: "flex",
             justifyContent: "center",
@@ -550,12 +597,15 @@ export const PriceCheckContent: FC = () => {
             fontSize: 10,
             color: "#666"
           }}>
-            <span>
-              {tieredResult.tiers.length} tier{tieredResult.tiers.length > 1 ? "s" : ""} searched
-            </span>
+            {/* Confidence indicator */}
+            <ConfidenceBadge
+              searchTier={tieredResult.stopped_at_tier}
+              listingsCount={tieredResult.tiers.reduce((sum, t) => sum + t.total, 0)}
+              compact
+            />
             <span>•</span>
             <span>
-              {tieredResult.tiers.reduce((sum, t) => sum + t.total, 0)} total listings
+              {tieredResult.tiers.reduce((sum, t) => sum + t.total, 0)} listings
             </span>
             {/* Item quality indicator */}
             {itemEvaluation && (
@@ -718,6 +768,7 @@ export const PriceCheckContent: FC = () => {
                       modifier={mod}
                       index={modifierIndex.get(mod)!}
                       onToggle={toggleModifier}
+                      itemClass={parsedItem?.itemClass}
                     />
                   ))}
                   {implicits.length > 0 && explicits.length > 0 && (
@@ -729,6 +780,7 @@ export const PriceCheckContent: FC = () => {
                       modifier={mod}
                       index={modifierIndex.get(mod)!}
                       onToggle={toggleModifier}
+                      itemClass={parsedItem?.itemClass}
                     />
                   ))}
                   {crafted.length > 0 && (
@@ -740,6 +792,7 @@ export const PriceCheckContent: FC = () => {
                       modifier={mod}
                       index={modifierIndex.get(mod)!}
                       onToggle={toggleModifier}
+                      itemClass={parsedItem?.itemClass}
                     />
                   ))}
                 </>

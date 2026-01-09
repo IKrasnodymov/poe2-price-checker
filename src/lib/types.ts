@@ -101,8 +101,9 @@ export interface TradeListing {
   chaosValue?: number;  // Normalized price in chaos
   account: string;
   character?: string;  // Character name for /hideout command
+  online?: string | null;  // Online status: "online", "afk", or null if offline
   whisper: string;
-  indexed: string;
+  indexed: string;  // ISO timestamp when listing was created
 }
 
 // =========================================================================

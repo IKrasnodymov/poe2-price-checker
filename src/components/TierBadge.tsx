@@ -210,4 +210,139 @@ export const TierSummary: FC<TierSummaryProps> = ({ tiers }) => {
   );
 };
 
+// =========================================================================
+// CONFIDENCE BADGE
+// =========================================================================
+
+type ConfidenceLevel = "high" | "medium" | "low";
+
+interface ConfidenceBadgeProps {
+  searchTier: number;  // Which tier found results (0-3)
+  listingsCount: number;
+  compact?: boolean;
+}
+
+/**
+ * Get confidence level based on search tier and listings count
+ * - High: Tier 0-1 with 5+ listings (exact/similar match with good sample)
+ * - Medium: Tier 2 with 5+ listings OR Tier 0-1 with <5 listings
+ * - Low: Tier 3 (base only) OR any tier with <3 listings
+ */
+export const getConfidenceLevel = (searchTier: number, listingsCount: number): ConfidenceLevel => {
+  if (listingsCount < 3) return "low";
+  if (searchTier <= 1 && listingsCount >= 5) return "high";
+  if (searchTier <= 1 || (searchTier === 2 && listingsCount >= 5)) return "medium";
+  return "low";
+};
+
+/**
+ * ConfidenceBadge - Shows price confidence based on search quality
+ */
+export const ConfidenceBadge: FC<ConfidenceBadgeProps> = ({
+  searchTier,
+  listingsCount,
+  compact = false,
+}) => {
+  const level = getConfidenceLevel(searchTier, listingsCount);
+
+  const config: Record<ConfidenceLevel, { color: string; label: string; icon: string }> = {
+    high: { color: "#40c057", label: "High Confidence", icon: "◉" },
+    medium: { color: "#fab005", label: "Medium Confidence", icon: "◎" },
+    low: { color: "#868e96", label: "Low Confidence", icon: "○" },
+  };
+
+  const { color, label, icon } = config[level];
+
+  if (compact) {
+    return (
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: "bold",
+          color,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 2,
+        }}
+        title={label}
+      >
+        {icon} {level.charAt(0).toUpperCase() + level.slice(1)}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 6px",
+        borderRadius: 4,
+        backgroundColor: `${color}20`,
+        border: `1px solid ${color}40`,
+        fontSize: 10,
+        fontWeight: "bold",
+        color,
+      }}
+    >
+      {icon} {label}
+    </span>
+  );
+};
+
+// =========================================================================
+// SEARCH INFO BADGE
+// =========================================================================
+
+interface SearchInfoBadgeProps {
+  stoppedAtTier: number;
+  totalSearches: number;
+}
+
+const TIER_NAMES: Record<number, string> = {
+  0: "Exact Match",
+  1: "Your Item (80%)",
+  2: "Similar Items",
+  3: "Base Type Only",
+};
+
+/**
+ * SearchInfoBadge - Shows which tier found results and how many searches were made
+ */
+export const SearchInfoBadge: FC<SearchInfoBadgeProps> = ({
+  stoppedAtTier,
+  totalSearches,
+}) => {
+  const tierName = TIER_NAMES[stoppedAtTier] || `Tier ${stoppedAtTier}`;
+
+  // Color based on tier - better tiers are greener
+  const tierColors: Record<number, string> = {
+    0: "#40c057",  // Green - exact
+    1: "#69db7c",  // Light green - your item
+    2: "#fab005",  // Yellow - similar
+    3: "#868e96",  // Gray - base only
+  };
+
+  const color = tierColors[stoppedAtTier] || tierColors[3];
+
+  return (
+    <span
+      style={{
+        fontSize: 9,
+        color: "#888",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+      }}
+    >
+      Found at{" "}
+      <span style={{ color, fontWeight: "bold" }}>{tierName}</span>
+      {totalSearches > 1 && (
+        <span style={{ color: "#666" }}>({totalSearches} searches)</span>
+      )}
+    </span>
+  );
+};
+
 export default TierBadge;

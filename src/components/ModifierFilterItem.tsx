@@ -6,13 +6,14 @@ import { ItemModifier } from "../lib/types";
 import { MOD_TYPE_COLORS } from "../styles/constants";
 import { TierBadge } from "./TierBadge";
 import { evaluateModifier, ModifierEvaluation } from "../utils/itemEvaluator";
-import { isTierDataLoaded } from "../data/modifierTiers";
+import { isTierDataLoaded, validateModifierText, ModifierValidation } from "../data/modifierTiers";
 
 interface ModifierFilterProps {
   modifier: ItemModifier;
   index: number;
   onToggle: (index: number) => void;
   tierEval?: ModifierEvaluation;  // Pre-computed tier evaluation (optional)
+  itemClass?: string;  // Item class for mod validation (optional)
 }
 
 export const ModifierFilterItem: FC<ModifierFilterProps> = ({
@@ -20,6 +21,7 @@ export const ModifierFilterItem: FC<ModifierFilterProps> = ({
   index,
   onToggle,
   tierEval,
+  itemClass,
 }) => {
   const typeColor = MOD_TYPE_COLORS[modifier.type] || MOD_TYPE_COLORS.explicit;
 
@@ -29,6 +31,12 @@ export const ModifierFilterItem: FC<ModifierFilterProps> = ({
     if (!isTierDataLoaded()) return null;
     return evaluateModifier(modifier);
   }, [modifier, tierEval]);
+
+  // Validate modifier against item class
+  const validation = useMemo<ModifierValidation | null>(() => {
+    if (!itemClass || !isTierDataLoaded()) return null;
+    return validateModifierText(modifier.text, itemClass);
+  }, [modifier.text, itemClass]);
 
   // Split text to highlight numeric values
   const parts = modifier.text.split(/(\+?-?\d+(?:\.\d+)?%?)/g);
@@ -89,6 +97,20 @@ export const ModifierFilterItem: FC<ModifierFilterProps> = ({
 
       {/* Type badge + Tier on the right */}
       <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+        {/* Invalid mod warning */}
+        {validation && !validation.isValid && (
+          <span
+            title={validation.warning || "This modifier may not appear on this item type"}
+            style={{
+              fontSize: 10,
+              color: "#ff6b6b",
+              cursor: "help",
+            }}
+          >
+            ⚠
+          </span>
+        )}
+
         {/* Tier badge - from evaluation or fallback to modifier.tier */}
         {evaluation && evaluation.tier !== null ? (
           <TierBadge

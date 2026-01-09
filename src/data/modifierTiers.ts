@@ -327,3 +327,111 @@ export function getCategoryIcon(category: ModifierCategory): string {
   };
   return icons[category] || "✨";
 }
+
+// =========================================================================
+// ITEM CLASS VALIDATION
+// =========================================================================
+
+/**
+ * Mapping of common item class names to normalized forms
+ */
+const ITEM_CLASS_ALIASES: Record<string, string[]> = {
+  "body armour": ["body armour", "body armours", "body armor", "body armors", "chest"],
+  "helmet": ["helmet", "helmets", "helm", "helms"],
+  "gloves": ["gloves", "glove", "gauntlets"],
+  "boots": ["boots", "boot"],
+  "belt": ["belt", "belts"],
+  "ring": ["ring", "rings"],
+  "amulet": ["amulet", "amulets"],
+  "shield": ["shield", "shields"],
+  "quiver": ["quiver", "quivers"],
+  "one hand sword": ["one hand sword", "one handed sword", "one-handed sword", "sword"],
+  "two hand sword": ["two hand sword", "two handed sword", "two-handed sword"],
+  "one hand axe": ["one hand axe", "one handed axe", "one-handed axe", "axe"],
+  "two hand axe": ["two hand axe", "two handed axe", "two-handed axe"],
+  "one hand mace": ["one hand mace", "one handed mace", "one-handed mace", "mace"],
+  "two hand mace": ["two hand mace", "two handed mace", "two-handed mace"],
+  "bow": ["bow", "bows"],
+  "crossbow": ["crossbow", "crossbows"],
+  "staff": ["staff", "staves", "staffs"],
+  "wand": ["wand", "wands"],
+  "sceptre": ["sceptre", "sceptres", "scepter", "scepters"],
+  "claw": ["claw", "claws"],
+  "dagger": ["dagger", "daggers"],
+  "flail": ["flail", "flails"],
+  "spear": ["spear", "spears"],
+  "quarterstaff": ["quarterstaff", "quarterstaves", "quarterstaffs"],
+  "focus": ["focus", "foci", "focuses"],
+};
+
+/**
+ * Normalize an item class name for comparison
+ */
+function normalizeItemClass(itemClass: string): string {
+  const lower = itemClass.toLowerCase().trim();
+
+  // Check aliases
+  for (const [normalized, aliases] of Object.entries(ITEM_CLASS_ALIASES)) {
+    if (aliases.includes(lower)) {
+      return normalized;
+    }
+  }
+
+  return lower;
+}
+
+/**
+ * Check if a modifier can appear on a given item class
+ *
+ * @param modifier - The modifier data from tier matching
+ * @param itemClass - The item class to check against
+ * @returns Object with validation result and details
+ */
+export interface ModifierValidation {
+  isValid: boolean;
+  canAppearOn: string[];  // Item classes this mod can appear on
+  warning?: string;       // Warning message if invalid
+}
+
+export function validateModifierForItemClass(
+  modifier: ModifierData | null,
+  itemClass: string
+): ModifierValidation {
+  // If no modifier data, assume valid (can't validate)
+  if (!modifier) {
+    return { isValid: true, canAppearOn: [] };
+  }
+
+  // If no itemClasses specified, assume can appear anywhere
+  if (!modifier.itemClasses || modifier.itemClasses.length === 0) {
+    return { isValid: true, canAppearOn: [] };
+  }
+
+  const normalizedItemClass = normalizeItemClass(itemClass);
+  const normalizedAllowed = modifier.itemClasses.map(ic => normalizeItemClass(ic));
+
+  // Check if the item class is in the allowed list
+  const isValid = normalizedAllowed.includes(normalizedItemClass);
+
+  if (!isValid) {
+    return {
+      isValid: false,
+      canAppearOn: modifier.itemClasses,
+      warning: `This mod can only appear on: ${modifier.itemClasses.slice(0, 3).join(", ")}${modifier.itemClasses.length > 3 ? "..." : ""}`,
+    };
+  }
+
+  return { isValid: true, canAppearOn: modifier.itemClasses };
+}
+
+/**
+ * Validate a modifier text against an item class
+ * Convenience function that combines pattern matching and validation
+ */
+export function validateModifierText(
+  modifierText: string,
+  itemClass: string
+): ModifierValidation {
+  const modifier = findModifierByPattern(modifierText);
+  return validateModifierForItemClass(modifier, itemClass);
+}

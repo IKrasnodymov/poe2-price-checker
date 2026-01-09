@@ -65,11 +65,57 @@ export interface PriceStats {
   average: number;
   currency: string;
   count: number;
+  // Extended stats (v2)
+  p10?: number;       // 10th percentile (cheap listings)
+  p25?: number;       // 25th percentile (lower quartile)
+  p75?: number;       // 75th percentile (upper quartile)
+  p90?: number;       // 90th percentile (expensive listings)
+  stdDev?: number;    // Standard deviation
+  volatility?: "low" | "medium" | "high";  // Price volatility indicator
 }
 
 export interface Listing {
   amount?: number | null;
   currency?: string;
+}
+
+/**
+ * Calculate percentile value from sorted array
+ */
+function percentile(sortedValues: number[], p: number): number {
+  if (sortedValues.length === 0) return 0;
+  if (sortedValues.length === 1) return sortedValues[0];
+
+  const index = (p / 100) * (sortedValues.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+
+  if (lower === upper) return sortedValues[lower];
+
+  const fraction = index - lower;
+  return sortedValues[lower] + fraction * (sortedValues[upper] - sortedValues[lower]);
+}
+
+/**
+ * Calculate standard deviation
+ */
+function standardDeviation(values: number[], mean: number): number {
+  if (values.length < 2) return 0;
+
+  const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+  const avgSquaredDiff = squaredDiffs.reduce((sum, v) => sum + v, 0) / values.length;
+  return Math.sqrt(avgSquaredDiff);
+}
+
+/**
+ * Determine price volatility based on coefficient of variation
+ */
+function getVolatility(stdDev: number, mean: number): "low" | "medium" | "high" {
+  if (mean === 0) return "low";
+  const cv = stdDev / mean;  // Coefficient of variation
+  if (cv < 0.25) return "low";      // < 25% variation
+  if (cv < 0.50) return "medium";   // 25-50% variation
+  return "high";                     // > 50% variation
 }
 
 export function calculatePriceStats(listings: Listing[]): PriceStats | null {
@@ -105,7 +151,18 @@ export function calculatePriceStats(listings: Listing[]): PriceStats | null {
     : (values[mid - 1] + values[mid]) / 2;
   const average = values.reduce((sum, v) => sum + v, 0) / values.length;
 
-  return { min, max, median, average, currency: dominant, count: values.length };
+  // Calculate extended stats
+  const p10 = percentile(values, 10);
+  const p25 = percentile(values, 25);
+  const p75 = percentile(values, 75);
+  const p90 = percentile(values, 90);
+  const stdDev = standardDeviation(values, average);
+  const volatility = getVolatility(stdDev, average);
+
+  return {
+    min, max, median, average, currency: dominant, count: values.length,
+    p10, p25, p75, p90, stdDev, volatility
+  };
 }
 
 /**

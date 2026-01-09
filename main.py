@@ -19,7 +19,17 @@ if _plugin_dir not in sys.path:
     sys.path.insert(0, _plugin_dir)
 
 # Import from backend modules (these can be at module level since they don't use decky)
-from backend import AdaptiveRateLimiter, SearchResultCache
+from backend import (
+    AdaptiveRateLimiter,
+    SearchResultCache,
+    ClipboardManager,
+    PriceAnalytics,
+    PriceLearningStore,
+    ScanHistoryStore,
+    PriceHistoryStore,
+    StatCacheStore,
+    SettingsStore,
+)
 
 
 # Keep simple RateLimiter for backward compatibility
@@ -77,6 +87,14 @@ class Plugin:
 
     # Debug: store last fetched listings for debugging
     last_debug_listings: List[Dict[str, Any]] = None  # type: ignore
+
+    # New module instances (initialized in _main)
+    clipboard_manager: ClipboardManager = None  # type: ignore
+    price_analytics: PriceAnalytics = None  # type: ignore
+    price_learning_store: PriceLearningStore = None  # type: ignore
+    scan_history_store: ScanHistoryStore = None  # type: ignore
+    price_history_store: PriceHistoryStore = None  # type: ignore
+    stat_cache_store: StatCacheStore = None  # type: ignore
 
     # =========================================================================
     # LIFECYCLE METHODS
@@ -136,6 +154,21 @@ class Plugin:
         Plugin.ssl_context = ssl.create_default_context()
         Plugin.ssl_context.check_hostname = False
         Plugin.ssl_context.verify_mode = ssl.CERT_NONE
+
+        # Initialize new backend modules
+        def _decky_logger(msg: str) -> None:
+            decky.logger.info(msg)
+
+        settings_dir = decky.DECKY_PLUGIN_SETTINGS_DIR
+
+        Plugin.clipboard_manager = ClipboardManager(logger=_decky_logger)
+        Plugin.price_analytics = PriceAnalytics(logger=_decky_logger)
+        Plugin.price_learning_store = PriceLearningStore(settings_dir, logger=_decky_logger)
+        Plugin.scan_history_store = ScanHistoryStore(settings_dir, logger=_decky_logger)
+        Plugin.price_history_store = PriceHistoryStore(settings_dir, logger=_decky_logger)
+        Plugin.stat_cache_store = StatCacheStore(settings_dir, logger=_decky_logger)
+
+        decky.logger.info("Backend modules initialized")
 
         # Load stat IDs from Trade API
         try:
@@ -221,104 +254,22 @@ class Plugin:
         decky.logger.info("PoE2 Price Checker uninstalling...")
 
     # =========================================================================
-    # CLIPBOARD OPERATIONS
+    # CLIPBOARD OPERATIONS (delegated to ClipboardManager)
     # =========================================================================
 
     async def read_clipboard(self) -> Dict[str, Any]:
-        """
-        Read item text from clipboard using multiple methods
-        Tries wl-paste, xclip, xsel in order
-        Uses async subprocess to avoid blocking the event loop
-        """
+        """Read item text from clipboard - delegated to ClipboardManager"""
         import decky
         decky.logger.info("read_clipboard method called")
-
-        try:
-            clipboard_tools = [
-                ["wl-paste", "-n"],
-                ["xclip", "-selection", "clipboard", "-o"],
-                ["xsel", "--clipboard", "--output"],
-            ]
-
-            last_error = "No clipboard tool available"
-
-            for tool_cmd in clipboard_tools:
-                try:
-                    decky.logger.info(f"Trying clipboard tool: {tool_cmd[0]}")
-
-                    # Set up environment for Steam Deck Gaming Mode
-                    env = os.environ.copy()
-                    if "WAYLAND_DISPLAY" not in env:
-                        env["WAYLAND_DISPLAY"] = "wayland-1"
-                    if "XDG_RUNTIME_DIR" not in env:
-                        env["XDG_RUNTIME_DIR"] = "/run/user/1000"
-                    if "DISPLAY" not in env:
-                        env["DISPLAY"] = ":0"  # XWayland display for games
-
-                    # Use async subprocess to avoid blocking the event loop
-                    proc = await asyncio.create_subprocess_exec(
-                        *tool_cmd,
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE,
-                        env=env
-                    )
-
-                    try:
-                        stdout, stderr = await asyncio.wait_for(
-                            proc.communicate(),
-                            timeout=5.0
-                        )
-                    except asyncio.TimeoutError:
-                        proc.kill()
-                        await proc.wait()
-                        last_error = "Clipboard read timed out"
-                        decky.logger.warning(last_error)
-                        continue
-
-                    if proc.returncode == 0:
-                        clipboard_text = stdout.decode("utf-8", errors="replace")
-
-                        # Validate it looks like PoE2 item text
-                        if Plugin._is_poe_item(self, clipboard_text):
-                            decky.logger.info(f"Read PoE item from clipboard ({len(clipboard_text)} chars)")
-                            return {
-                                "success": True,
-                                "text": clipboard_text,
-                                "error": None
-                            }
-                        else:
-                            return {
-                                "success": False,
-                                "text": clipboard_text[:100] if clipboard_text else None,
-                                "error": "Clipboard does not contain PoE2 item data. Hover over an item in PoE2 and press Ctrl+C (or your assigned button)."
-                            }
-                    else:
-                        stderr_text = stderr.decode("utf-8", errors="replace").strip()
-                        last_error = stderr_text if stderr_text else f"{tool_cmd[0]} failed"
-                        decky.logger.warning(f"{tool_cmd[0]} failed: {last_error}")
-                        continue
-
-                except FileNotFoundError:
-                    decky.logger.warning(f"{tool_cmd[0]} not found, trying next")
-                    continue
-                except Exception as e:
-                    last_error = str(e)
-                    decky.logger.error(f"Clipboard error with {tool_cmd[0]}: {e}")
-                    continue
-
-            # All tools failed
-            return {
-                "success": False,
-                "text": None,
-                "error": f"Could not read clipboard: {last_error}"
-            }
-        except Exception as e:
-            decky.logger.error(f"read_clipboard unexpected error: {e}")
-            import traceback
-            decky.logger.error(traceback.format_exc())
-            return {"success": False, "text": None, "error": f"Unexpected error: {e}"}
+        return await Plugin.clipboard_manager.read_clipboard()
 
     def _is_poe_item(self, text: str) -> bool:
+        """Check if text appears to be a PoE2 item - delegated to ClipboardManager"""
+        return ClipboardManager.is_poe_item(text)
+
+    # Legacy compatibility - keep the original validation logic
+    @staticmethod
+    def _is_poe_item_static(text: str) -> bool:
         """Check if text appears to be a PoE2 item"""
         if not text:
             return False
@@ -345,41 +296,20 @@ class Plugin:
         return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, Plugin.STAT_CACHE_FILE)
 
     async def load_stat_cache_from_disk(self) -> bool:
-        """Load stat cache from disk. Returns True if loaded successfully."""
+        """Load stat cache from store. Returns True if loaded successfully."""
         import decky
-        cache_path = Plugin.get_stat_cache_path(self)
-
-        try:
-            if os.path.exists(cache_path):
-                with open(cache_path, "r") as f:
-                    data = json.load(f)
-                    Plugin.stat_cache = data.get("cache", {})
-                    count = len(Plugin.stat_cache)
-                    decky.logger.info(f"Loaded {count} stat IDs from disk cache")
-                    return count > 0
-        except Exception as e:
-            decky.logger.error(f"Failed to load stat cache from disk: {e}")
-
-        return False
+        Plugin.stat_cache_store.load()
+        Plugin.stat_cache = Plugin.stat_cache_store.get_cache()
+        count = len(Plugin.stat_cache)
+        decky.logger.info(f"Loaded {count} stat IDs from disk cache")
+        return count > 0
 
     async def save_stat_cache_to_disk(self) -> bool:
-        """Save stat cache to disk. Returns True if saved successfully."""
+        """Save stat cache to store. Returns True if saved successfully."""
         import decky
-        cache_path = Plugin.get_stat_cache_path(self)
-
-        try:
-            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-            with open(cache_path, "w") as f:
-                json.dump({
-                    "cache": Plugin.stat_cache,
-                    "timestamp": int(time.time()),
-                    "count": len(Plugin.stat_cache)
-                }, f)
-            decky.logger.info(f"Saved {len(Plugin.stat_cache)} stat IDs to disk cache")
-            return True
-        except Exception as e:
-            decky.logger.error(f"Failed to save stat cache to disk: {e}")
-            return False
+        success = Plugin.stat_cache_store.set_cache(Plugin.stat_cache)
+        decky.logger.info(f"Saved {len(Plugin.stat_cache)} stat IDs to disk cache")
+        return success
 
     async def load_stat_ids_from_api(self) -> bool:
         """Load stat IDs from Trade API. Returns True if loaded successfully."""
@@ -722,34 +652,17 @@ class Plugin:
         return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "price_history.json")
 
     async def load_price_history(self) -> None:
-        """Load price history from file"""
+        """Load price history from store"""
         import decky
-        history_path = self._get_history_path()
-
-        if os.path.exists(history_path):
-            try:
-                with open(history_path, "r") as f:
-                    Plugin.price_history = json.load(f)
-                decky.logger.info(f"Loaded {len(Plugin.price_history)} items from price history")
-            except Exception as e:
-                decky.logger.error(f"Failed to load price history: {e}")
-                Plugin.price_history = {}
-        else:
-            Plugin.price_history = {}
-            decky.logger.info("No price history file found, starting fresh")
+        Plugin.price_history = Plugin.price_history_store.load()
+        decky.logger.info(f"Loaded {len(Plugin.price_history)} items from price history")
 
     async def save_price_history(self) -> None:
-        """Save price history to file"""
+        """Save price history to store"""
         import decky
-        history_path = self._get_history_path()
-
-        try:
-            os.makedirs(os.path.dirname(history_path), exist_ok=True)
-            with open(history_path, "w") as f:
-                json.dump(Plugin.price_history, f, indent=2)
-            decky.logger.info(f"Saved {len(Plugin.price_history)} items to price history")
-        except Exception as e:
-            decky.logger.error(f"Failed to save price history: {e}")
+        Plugin.price_history_store.data = Plugin.price_history
+        Plugin.price_history_store.save()
+        decky.logger.info(f"Saved {len(Plugin.price_history)} items to price history")
 
     def _make_item_key(self, item_name: str, base_type: str, rarity: str) -> str:
         """Create a unique key for an item based on name/type"""
@@ -851,34 +764,19 @@ class Plugin:
         return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, Plugin.ICON_CACHE_DIR)
 
     async def load_scan_history(self) -> None:
-        """Load scan history from file"""
+        """Load scan history from store"""
         import decky
-        history_path = Plugin._get_scan_history_path(self)
-
-        if os.path.exists(history_path):
-            try:
-                with open(history_path, "r") as f:
-                    Plugin.scan_history = json.load(f)
-                decky.logger.info(f"Loaded {len(Plugin.scan_history)} scan history records")
-            except Exception as e:
-                decky.logger.error(f"Failed to load scan history: {e}")
-                Plugin.scan_history = []
-        else:
-            Plugin.scan_history = []
-            decky.logger.info("No scan history file found, starting fresh")
+        data = Plugin.scan_history_store.load()
+        Plugin.scan_history = data if isinstance(data, list) else []
+        decky.logger.info(f"Loaded {len(Plugin.scan_history)} scan history records")
 
     async def save_scan_history(self) -> None:
-        """Save scan history to file"""
+        """Save scan history to store"""
         import decky
-        history_path = Plugin._get_scan_history_path(self)
-
-        try:
-            os.makedirs(os.path.dirname(history_path), exist_ok=True)
-            with open(history_path, "w") as f:
-                json.dump(Plugin.scan_history, f, indent=2)
-            decky.logger.info(f"Saved {len(Plugin.scan_history)} scan history records")
-        except Exception as e:
-            decky.logger.error(f"Failed to save scan history: {e}")
+        Plugin.scan_history_store._data = Plugin.scan_history
+        Plugin.scan_history_store._loaded = True
+        Plugin.scan_history_store.save()
+        decky.logger.info(f"Saved {len(Plugin.scan_history)} scan history records")
 
     async def download_icon(self, icon_url: str, record_id: str) -> Optional[str]:
         """Download icon from URL and cache locally"""
@@ -1066,47 +964,20 @@ class Plugin:
         return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "price_learning.json")
 
     async def load_price_learning(self) -> None:
-        """Load price learning data from file"""
+        """Load price learning data from store (handles versioning automatically)"""
         import decky
-        learning_path = Plugin._get_price_learning_path(self)
-
-        if os.path.exists(learning_path):
-            try:
-                with open(learning_path, "r") as f:
-                    data = json.load(f)
-
-                # Check version and reset if outdated
-                stored_version = data.get("_version", 1)
-                if stored_version < Plugin.PRICE_LEARNING_VERSION:
-                    decky.logger.info(f"Price learning data version {stored_version} is outdated (current: {Plugin.PRICE_LEARNING_VERSION}), resetting")
-                    Plugin.price_learning = {"_version": Plugin.PRICE_LEARNING_VERSION}
-                else:
-                    Plugin.price_learning = data
-                    total = sum(len(v) for v in Plugin.price_learning.values() if isinstance(v, list))
-                    decky.logger.info(f"Loaded price learning data v{stored_version}: {len(Plugin.price_learning)} classes, {total} records")
-            except Exception as e:
-                decky.logger.error(f"Failed to load price learning: {e}")
-                Plugin.price_learning = {"_version": Plugin.PRICE_LEARNING_VERSION}
-        else:
-            Plugin.price_learning = {"_version": Plugin.PRICE_LEARNING_VERSION}
-            decky.logger.info("No price learning file found, starting fresh")
+        Plugin.price_learning = Plugin.price_learning_store.load()
+        total = Plugin.price_learning_store.get_total_count()
+        decky.logger.info(f"Loaded price learning data: {total} records")
 
     async def save_price_learning(self) -> None:
-        """Save price learning data to file"""
+        """Save price learning data to store"""
         import decky
-        learning_path = Plugin._get_price_learning_path(self)
-
-        try:
-            # Ensure version is always set
-            Plugin.price_learning["_version"] = Plugin.PRICE_LEARNING_VERSION
-
-            os.makedirs(os.path.dirname(learning_path), exist_ok=True)
-            with open(learning_path, "w") as f:
-                json.dump(Plugin.price_learning, f, indent=2)
-            total = sum(len(v) for v in Plugin.price_learning.values() if isinstance(v, list))
-            decky.logger.info(f"Saved price learning data v{Plugin.PRICE_LEARNING_VERSION}: {len(Plugin.price_learning)} classes, {total} records")
-        except Exception as e:
-            decky.logger.error(f"Failed to save price learning: {e}")
+        Plugin.price_learning_store._data = Plugin.price_learning
+        Plugin.price_learning_store._loaded = True
+        Plugin.price_learning_store.save()
+        total = sum(len(v) for v in Plugin.price_learning.values() if isinstance(v, list))
+        decky.logger.info(f"Saved price learning data: {total} records")
 
     async def add_price_learning_record(
         self,
@@ -1122,7 +993,18 @@ class Plugin:
         rarity: Optional[str] = None,
         socket_count: Optional[int] = None,
         total_dps: Optional[float] = None,
-        listings_count: int = 0
+        listings_count: int = 0,
+        # New v3 fields for expanded data capture
+        armour: Optional[int] = None,
+        evasion: Optional[int] = None,
+        energy_shield: Optional[int] = None,
+        block: Optional[int] = None,
+        spirit: Optional[int] = None,
+        pdps: Optional[float] = None,
+        edps: Optional[float] = None,
+        linked_sockets: Optional[int] = None,
+        implicit_patterns: Optional[List[Dict[str, Any]]] = None,
+        corrupted: bool = False
     ) -> Dict[str, Any]:
         """
         Add a price learning record for all scans.
@@ -1131,12 +1013,24 @@ class Plugin:
         mod_patterns: List of detailed modifier patterns with tier info
             [{pattern: str, tier: int|None, category: str, value: int|None}]
 
-        New fields (v2):
+        v2 fields:
             ilvl: Item level
             rarity: "unique" | "rare" | "magic" | "normal"
             socket_count: Number of sockets
             total_dps: Total DPS for weapons
             listings_count: Number of listings found (confidence indicator)
+
+        v3 fields (expanded data capture):
+            armour: Armour value for armor pieces
+            evasion: Evasion value for armor pieces
+            energy_shield: Energy shield value for armor pieces
+            block: Block chance % for shields
+            spirit: Spirit value
+            pdps: Physical DPS for weapons
+            edps: Elemental DPS for weapons
+            linked_sockets: Number of linked sockets
+            implicit_patterns: Implicit modifier patterns (same format as mod_patterns)
+            corrupted: Whether item is corrupted
         """
         import decky
 
@@ -1157,7 +1051,18 @@ class Plugin:
             "rarity": rarity,
             "socket_count": socket_count,
             "total_dps": total_dps,
-            "listings_count": listings_count
+            "listings_count": listings_count,
+            # v3 fields
+            "armour": armour,
+            "evasion": evasion,
+            "energy_shield": energy_shield,
+            "block": block,
+            "spirit": spirit,
+            "pdps": pdps,
+            "edps": edps,
+            "linked_sockets": linked_sockets,
+            "implicit_patterns": implicit_patterns or [],
+            "corrupted": corrupted
         }
 
         # Add to learning data
@@ -1229,248 +1134,27 @@ class Plugin:
         }
 
     async def get_market_insights(self) -> Dict[str, Any]:
-        """
-        Analyze collected price learning data to determine:
-        - Which mod categories are most valuable
-        - Price trends by item class
-        - Hot mods (appearing in expensive items)
-        """
+        """Get market insights - delegated to PriceAnalytics"""
         import decky
-        from collections import defaultdict
-
-        if not Plugin.price_learning:
-            return {
-                "success": False,
-                "error": "No data collected yet",
-                "total_records": 0
-            }
-
-        # Aggregate statistics
-        total_records = sum(len(v) for v in Plugin.price_learning.values())
-        if total_records < 5:
-            return {
-                "success": False,
-                "error": f"Need more data (have {total_records}, need 5+)",
-                "total_records": total_records
-            }
-
-        # Analyze mod category values
-        mod_category_stats = defaultdict(lambda: {"total_price": 0.0, "count": 0, "items": []})
-        item_class_stats = defaultdict(lambda: {"total_price": 0.0, "count": 0, "avg_quality": 0.0})
-
-        for item_class, records in Plugin.price_learning.items():
-            for record in records:
-                # Normalize to exalted for stats (simple ratio: 1 divine ≈ 0.5 exalted in PoE2)
-                raw_price = record.get("price", record.get("price_exalted", 0))
-                currency = record.get("currency", record.get("original_currency", "exalted"))
-                if currency.lower() in ["divine", "divine-orb", "div"]:
-                    price = raw_price * 0.5
-                elif currency.lower() in ["chaos", "chaos-orb"]:
-                    price = raw_price / 100.0
-                else:
-                    price = raw_price
-                quality = record.get("quality_score", 50)
-                categories = record.get("mod_categories", [])
-
-                # Track item class stats
-                item_class_stats[item_class]["total_price"] += price
-                item_class_stats[item_class]["count"] += 1
-                item_class_stats[item_class]["avg_quality"] += quality
-
-                # Track mod category stats
-                for cat in categories:
-                    mod_category_stats[cat]["total_price"] += price
-                    mod_category_stats[cat]["count"] += 1
-
-        # Calculate averages
-        hot_mods = []
-        for cat, stats in mod_category_stats.items():
-            if stats["count"] >= 2:
-                avg_price = stats["total_price"] / stats["count"]
-                hot_mods.append({
-                    "category": cat,
-                    "avg_price": round(avg_price, 1),
-                    "count": stats["count"]
-                })
-
-        # Sort by average price (descending)
-        hot_mods.sort(key=lambda x: x["avg_price"], reverse=True)
-
-        # Calculate item class averages
-        class_stats = []
-        for item_class, stats in item_class_stats.items():
-            if stats["count"] >= 1:
-                avg_price = stats["total_price"] / stats["count"]
-                avg_quality = stats["avg_quality"] / stats["count"]
-                class_stats.append({
-                    "item_class": item_class.replace("_", " ").title(),
-                    "avg_price": round(avg_price, 1),
-                    "avg_quality": round(avg_quality),
-                    "count": stats["count"]
-                })
-
-        class_stats.sort(key=lambda x: x["avg_price"], reverse=True)
-
-        # Get recent high-value items (top 5)
-        all_records = []
-        for item_class, records in Plugin.price_learning.items():
-            for record in records:
-                raw_price = record.get("price", record.get("price_exalted", 0))
-                currency = record.get("currency", record.get("original_currency", "exalted"))
-                # Normalize for sorting
-                if currency.lower() in ["divine", "divine-orb", "div"]:
-                    sort_price = raw_price * 0.5
-                elif currency.lower() in ["chaos", "chaos-orb"]:
-                    sort_price = raw_price / 100.0
-                else:
-                    sort_price = raw_price
-                all_records.append({
-                    "item_class": item_class.replace("_", " ").title(),
-                    "base_type": record.get("base_type", "Unknown"),
-                    "price": raw_price,
-                    "currency": currency,
-                    "sort_price": sort_price,
-                    "quality": record.get("quality_score", 0),
-                    "timestamp": record.get("timestamp", 0)
-                })
-
-        # Sort by normalized price and get top 5
-        all_records.sort(key=lambda x: x["sort_price"], reverse=True)
-        top_items = all_records[:5]
-
-        decky.logger.info(f"Market insights: {len(hot_mods)} mod categories, {len(class_stats)} item classes")
-
-        return {
-            "success": True,
-            "total_records": total_records,
-            "hot_mods": hot_mods[:10],  # Top 10 valuable mod categories
-            "item_class_stats": class_stats[:10],  # Top 10 item classes
-            "top_items": top_items,
-            "last_updated": int(time.time())
-        }
+        decky.logger.info("get_market_insights called")
+        records_by_class = Plugin._get_learning_records_by_class()
+        return Plugin.price_analytics.get_market_insights(records_by_class)
 
     async def get_hot_patterns(self, limit: int = 15) -> Dict[str, Any]:
-        """
-        Get hot modifier patterns with full statistics.
-        Returns specific patterns like "+X to maximum Life" instead of generic "life".
-        Includes tier distribution and price statistics.
-        Uses median for more accurate price representation.
-        """
+        """Get hot modifier patterns - delegated to PriceAnalytics"""
         import decky
-        from collections import defaultdict
+        decky.logger.info(f"get_hot_patterns called (limit={limit})")
+        records_by_class = Plugin._get_learning_records_by_class()
+        return Plugin.price_analytics.get_hot_patterns(records_by_class, limit)
 
-        if not Plugin.price_learning:
-            return {"success": False, "error": "No data", "patterns": []}
-
-        # Aggregate by pattern
-        pattern_stats = defaultdict(lambda: {
-            "prices": [],
-            "weighted_prices": [],  # (price, weight) tuples for weighted analysis
-            "tiers": [],
-            "category": None,
-            "count": 0
-        })
-
-        total_records = 0
-        for item_class, records in Plugin.price_learning.items():
-            # Skip version field
-            if item_class.startswith("_"):
-                continue
-            if not isinstance(records, list):
-                continue
-
-            for record in records:
-                total_records += 1
-                mod_patterns = record.get("mod_patterns", [])
-
-                # Use new helper function for price normalization
-                price = Plugin._normalize_price_to_exalted(
-                    record.get("price", 0),
-                    record.get("currency", "exalted")
-                )
-
-                # Calculate confidence weight for this record
-                weight = Plugin._calculate_confidence_weight(record)
-
-                for mp in mod_patterns:
-                    pattern = mp.get("pattern", "")
-                    if not pattern:
-                        continue
-                    pattern_stats[pattern]["prices"].append(price)
-                    pattern_stats[pattern]["weighted_prices"].append((price, weight))
-                    tier = mp.get("tier")
-                    if tier is not None:
-                        pattern_stats[pattern]["tiers"].append(tier)
-                    if mp.get("category"):
-                        pattern_stats[pattern]["category"] = mp.get("category")
-                    pattern_stats[pattern]["count"] += 1
-
-                # Fallback: use generic categories for old records without mod_patterns
-                if not mod_patterns and record.get("mod_categories"):
-                    for cat in record.get("mod_categories", []):
-                        fallback_pattern = f"[{cat}]"
-                        pattern_stats[fallback_pattern]["prices"].append(price)
-                        pattern_stats[fallback_pattern]["weighted_prices"].append((price, weight))
-                        pattern_stats[fallback_pattern]["category"] = cat
-                        pattern_stats[fallback_pattern]["count"] += 1
-
-        if total_records < 5:
-            return {"success": False, "error": f"Need 5+ records (have {total_records})", "patterns": []}
-
-        # Calculate full stats for each pattern
-        hot_patterns = []
-        for pattern, stats in pattern_stats.items():
-            if stats["count"] < 2:
-                continue
-
-            prices = stats["prices"]
-            tiers = [t for t in stats["tiers"] if t and t > 0]
-
-            # Calculate median price (more robust than mean)
-            median_price = Plugin._calculate_median(prices)
-
-            # Tier distribution
-            tier_dist = {"T1": 0, "T2": 0, "T3": 0, "T4": 0, "T5+": 0}
-            for t in tiers:
-                if t == 1:
-                    tier_dist["T1"] += 1
-                elif t == 2:
-                    tier_dist["T2"] += 1
-                elif t == 3:
-                    tier_dist["T3"] += 1
-                elif t == 4:
-                    tier_dist["T4"] += 1
-                else:
-                    tier_dist["T5+"] += 1
-
-            # Format display name: "# to maximum Life" -> "+X to Maximum Life"
-            display_name = pattern.replace("#", "X")
-            if display_name.startswith("X ") or display_name.startswith("X%"):
-                display_name = "+" + display_name
-
-            hot_patterns.append({
-                "pattern": pattern,
-                "display_name": display_name,
-                "category": stats["category"],
-                "count": stats["count"],
-                "median_price": round(median_price, 1),
-                "avg_price": round(sum(prices) / len(prices), 1),
-                "min_price": round(min(prices), 1),
-                "max_price": round(max(prices), 1),
-                "tier_distribution": tier_dist,
-                "avg_tier": round(sum(tiers) / len(tiers), 1) if tiers else None
-            })
-
-        # Sort by count * median_price (popularity weighted by value)
-        hot_patterns.sort(key=lambda x: x["count"] * x["median_price"], reverse=True)
-
-        decky.logger.info(f"Hot patterns: {len(hot_patterns)} patterns from {total_records} records")
-
-        return {
-            "success": True,
-            "patterns": hot_patterns[:limit],
-            "total_patterns": len(hot_patterns)
-        }
+    @staticmethod
+    def _get_learning_records_by_class() -> Dict[str, List[Dict[str, Any]]]:
+        """Extract learning records by class, excluding version field"""
+        result = {}
+        for key, value in (Plugin.price_learning or {}).items():
+            if not key.startswith("_") and isinstance(value, list):
+                result[key] = value
+        return result
 
     @staticmethod
     def _normalize_price_to_exalted(price: float, currency: str) -> float:
@@ -1518,230 +1202,25 @@ class Plugin:
         return weight
 
     async def get_learning_stats(self) -> Dict[str, Any]:
-        """Get statistics about collected learning data"""
+        """Get learning statistics - delegated to PriceAnalytics"""
         import decky
-
-        if not Plugin.price_learning:
-            return {
-                "success": True,
-                "total_records": 0,
-                "item_classes": 0,
-                "classes": {}
-            }
-
-        total = sum(len(v) for v in Plugin.price_learning.values() if isinstance(v, list))
-        classes = {}
-        for item_class, records in Plugin.price_learning.items():
-            # Skip version field
-            if item_class.startswith("_"):
-                continue
-            if records and isinstance(records, list):
-                # FIX: normalize prices properly (was using non-existent price_exalted field)
-                prices = [
-                    Plugin._normalize_price_to_exalted(
-                        r.get("price", 0),
-                        r.get("currency", "exalted")
-                    )
-                    for r in records
-                ]
-                median_price = Plugin._calculate_median(prices)
-                classes[item_class] = {
-                    "count": len(records),
-                    "avg_price": round(sum(prices) / len(prices), 1) if prices else 0,
-                    "median_price": round(median_price, 1),
-                    "min_price": round(min(prices), 1) if prices else 0,
-                    "max_price": round(max(prices), 1) if prices else 0
-                }
-
-        return {
-            "success": True,
-            "total_records": total,
-            "item_classes": len([k for k in Plugin.price_learning.keys() if not k.startswith("_")]),
-            "classes": classes
-        }
+        decky.logger.info("get_learning_stats called")
+        records_by_class = Plugin._get_learning_records_by_class()
+        return Plugin.price_analytics.get_learning_stats(records_by_class)
 
     async def get_price_trends(self, days: int = 7) -> Dict[str, Any]:
-        """
-        Analyze price trends over time for item classes.
-        Returns daily medians and trend direction.
-        """
+        """Get price trends - delegated to PriceAnalytics"""
         import decky
-        from collections import defaultdict
-
-        if not Plugin.price_learning:
-            return {"success": False, "error": "No data", "trends": []}
-
-        now = int(time.time())
-        day_seconds = 86400
-        cutoff = now - (days * day_seconds)
-
-        # Group by item class and day
-        class_daily_prices = defaultdict(lambda: defaultdict(list))
-
-        for item_class, records in Plugin.price_learning.items():
-            # Skip version field
-            if item_class.startswith("_"):
-                continue
-            if not isinstance(records, list):
-                continue
-
-            for record in records:
-                ts = record.get("timestamp", 0)
-                if ts < cutoff:
-                    continue
-
-                price = Plugin._normalize_price_to_exalted(
-                    record.get("price", 0),
-                    record.get("currency", "exalted")
-                )
-
-                # Calculate day index (0 = today, 1 = yesterday, etc.)
-                day_index = (now - ts) // day_seconds
-                class_daily_prices[item_class][day_index].append(price)
-
-        trends = []
-        for item_class, daily_data in class_daily_prices.items():
-            if not daily_data:
-                continue
-
-            daily_medians = []
-            for day_idx in range(days):
-                prices = daily_data.get(day_idx, [])
-                if prices:
-                    median = Plugin._calculate_median(prices)
-                    daily_medians.append({"day": day_idx, "median": round(median, 1), "count": len(prices)})
-
-            if len(daily_medians) < 2:
-                continue
-
-            # Calculate trend (compare recent vs older)
-            recent_prices = [d["median"] for d in daily_medians if d["day"] <= 2]
-            older_prices = [d["median"] for d in daily_medians if d["day"] > 2]
-
-            if recent_prices and older_prices:
-                recent_avg = sum(recent_prices) / len(recent_prices)
-                older_avg = sum(older_prices) / len(older_prices)
-                change_percent = ((recent_avg - older_avg) / older_avg * 100) if older_avg > 0 else 0
-
-                if change_percent > 10:
-                    trend_direction = "up"
-                elif change_percent < -10:
-                    trend_direction = "down"
-                else:
-                    trend_direction = "stable"
-            else:
-                change_percent = 0
-                trend_direction = "unknown"
-
-            trends.append({
-                "item_class": item_class.replace("_", " ").title(),
-                "daily_data": daily_medians,
-                "trend": trend_direction,
-                "change_percent": round(change_percent, 1),
-                "current_median": daily_medians[0]["median"] if daily_medians else 0
-            })
-
-        trends.sort(key=lambda x: abs(x["change_percent"]), reverse=True)
-
-        decky.logger.info(f"Price trends: {len(trends)} item classes over {days} days")
-
-        return {
-            "success": True,
-            "trends": trends[:10],
-            "period_days": days
-        }
+        decky.logger.info(f"get_price_trends called (days={days})")
+        records_by_class = Plugin._get_learning_records_by_class()
+        return Plugin.price_analytics.get_price_trends(records_by_class, days)
 
     async def get_quality_correlation(self) -> Dict[str, Any]:
-        """
-        Analyze correlation between item quality scores and prices.
-        Returns data for quality-price analysis.
-        """
+        """Get quality-price correlation - delegated to PriceAnalytics"""
         import decky
-        from collections import defaultdict
-
-        if not Plugin.price_learning:
-            return {"success": False, "error": "No data", "correlations": []}
-
-        # Collect quality-price pairs by item class
-        class_data = defaultdict(list)
-
-        for item_class, records in Plugin.price_learning.items():
-            # Skip version field
-            if item_class.startswith("_"):
-                continue
-            if not isinstance(records, list):
-                continue
-
-            for record in records:
-                quality = record.get("quality_score", 0)
-                price = Plugin._normalize_price_to_exalted(
-                    record.get("price", 0),
-                    record.get("currency", "exalted")
-                )
-                class_data[item_class].append({
-                    "quality": quality,
-                    "price": price,
-                    "ilvl": record.get("ilvl"),
-                    "search_tier": record.get("search_tier", 3)
-                })
-
-        correlations = []
-        for item_class, data_points in class_data.items():
-            if len(data_points) < 5:
-                continue
-
-            # Calculate Pearson correlation coefficient
-            qualities = [d["quality"] for d in data_points]
-            prices = [d["price"] for d in data_points]
-
-            n = len(qualities)
-            mean_q = sum(qualities) / n
-            mean_p = sum(prices) / n
-
-            # Pearson correlation
-            numerator = sum((q - mean_q) * (p - mean_p) for q, p in zip(qualities, prices))
-            denom_q = sum((q - mean_q) ** 2 for q in qualities) ** 0.5
-            denom_p = sum((p - mean_p) ** 2 for p in prices) ** 0.5
-
-            if denom_q > 0 and denom_p > 0:
-                correlation = numerator / (denom_q * denom_p)
-            else:
-                correlation = 0
-
-            # Bucket quality scores for visualization
-            buckets = {"0-25": [], "26-50": [], "51-75": [], "76-100": []}
-            for d in data_points:
-                q = d["quality"]
-                if q <= 25:
-                    buckets["0-25"].append(d["price"])
-                elif q <= 50:
-                    buckets["26-50"].append(d["price"])
-                elif q <= 75:
-                    buckets["51-75"].append(d["price"])
-                else:
-                    buckets["76-100"].append(d["price"])
-
-            bucket_medians = {}
-            for bucket, prices_list in buckets.items():
-                if prices_list:
-                    bucket_medians[bucket] = round(Plugin._calculate_median(prices_list), 1)
-
-            correlations.append({
-                "item_class": item_class.replace("_", " ").title(),
-                "correlation": round(correlation, 2),
-                "sample_size": len(data_points),
-                "bucket_medians": bucket_medians
-            })
-
-        # Sort by absolute correlation
-        correlations.sort(key=lambda x: abs(x["correlation"]), reverse=True)
-
-        decky.logger.info(f"Quality correlations: {len(correlations)} item classes")
-
-        return {
-            "success": True,
-            "correlations": correlations[:10]
-        }
+        decky.logger.info("get_quality_correlation called")
+        records_by_class = Plugin._get_learning_records_by_class()
+        return Plugin.price_analytics.get_quality_correlation(records_by_class)
 
     async def get_price_dynamics(
         self,
@@ -1749,103 +1228,16 @@ class Plugin:
         basetype: str,
         rarity: str
     ) -> Dict[str, Any]:
-        """Get price dynamics for an item from scan history and price history"""
+        """Get price dynamics - delegated to PriceAnalytics"""
         import decky
-
-        dynamics = []
-
-        # Find matching records from scan history
-        for record in Plugin.scan_history or []:
-            # Match by name for uniques, basetype for others
-            if rarity == "Unique":
-                if record.get("itemName", "").lower() == item_name.lower():
-                    price_data = record.get("priceData", {})
-                    dynamics.append({
-                        "timestamp": record.get("timestamp"),
-                        "price": price_data.get("medianPrice", 0),
-                        "currency": price_data.get("currency", "chaos"),
-                        "source": "scan"
-                    })
-            else:
-                if record.get("basetype", "").lower() == basetype.lower():
-                    price_data = record.get("priceData", {})
-                    dynamics.append({
-                        "timestamp": record.get("timestamp"),
-                        "price": price_data.get("medianPrice", 0),
-                        "currency": price_data.get("currency", "chaos"),
-                        "source": "scan"
-                    })
-
-        # Also check price_history for older records
-        key = Plugin._make_item_key(self, item_name, basetype, rarity)
-        historical = Plugin.price_history.get(key, []) if Plugin.price_history else []
-
-        for record in historical:
-            dynamics.append({
-                "timestamp": record.get("timestamp"),
-                "price": record.get("median_price", 0),
-                "currency": record.get("currency", "chaos"),
-                "source": "history"
-            })
-
-        # Remove duplicates (same timestamp)
-        seen_timestamps = set()
-        unique_dynamics = []
-        for d in dynamics:
-            ts = d.get("timestamp")
-            if ts not in seen_timestamps:
-                seen_timestamps.add(ts)
-                unique_dynamics.append(d)
-        dynamics = unique_dynamics
-
-        # Sort by timestamp (oldest first)
-        dynamics.sort(key=lambda x: x.get("timestamp", 0))
-
-        # Calculate changes
-        for i in range(len(dynamics)):
-            if i > 0:
-                prev_price = dynamics[i - 1]["price"]
-                curr_price = dynamics[i]["price"]
-
-                if prev_price > 0:
-                    change = curr_price - prev_price
-                    change_percent = (change / prev_price) * 100
-
-                    dynamics[i]["change"] = round(change, 2)
-                    dynamics[i]["changePercent"] = round(change_percent, 1)
-
-                    if change_percent > 5:
-                        dynamics[i]["trend"] = "up"
-                    elif change_percent < -5:
-                        dynamics[i]["trend"] = "down"
-                    else:
-                        dynamics[i]["trend"] = "stable"
-
-        # Calculate 24h change
-        now = int(time.time())
-        day_ago = now - 86400
-
-        recent = [d for d in dynamics if d["timestamp"] >= day_ago]
-        current_price = dynamics[-1]["price"] if dynamics else None
-
-        price_change_24h = None
-        price_change_percent_24h = None
-
-        if len(recent) >= 2:
-            oldest = recent[0]["price"]
-            newest = recent[-1]["price"]
-            if oldest > 0:
-                price_change_24h = round(newest - oldest, 2)
-                price_change_percent_24h = round((price_change_24h / oldest) * 100, 1)
-
-        return {
-            "success": True,
-            "itemKey": key,
-            "dynamics": dynamics,
-            "currentPrice": current_price,
-            "priceChange24h": price_change_24h,
-            "priceChangePercent24h": price_change_percent_24h
-        }
+        decky.logger.info(f"get_price_dynamics called: {item_name}, {basetype}, {rarity}")
+        return Plugin.price_analytics.get_price_dynamics(
+            Plugin.scan_history or [],
+            Plugin.price_history or {},
+            item_name,
+            basetype,
+            rarity
+        )
 
     async def get_settings_dir(self) -> Dict[str, Any]:
         """Return the plugin settings directory path"""
@@ -2070,12 +1462,24 @@ class Plugin:
                         price = listing.get("price", {})
                         amount = price.get("amount")
                         currency = price.get("currency")
-                        account = listing.get("account", {}).get("name", "Unknown")
+                        account_data = listing.get("account", {})
+                        account = account_data.get("name", "Unknown")
+
+                        # Extract character name for /hideout command
+                        character = account_data.get("lastCharacterName", "")
+
+                        # Extract online status
+                        online_data = account_data.get("online")
+                        online_status = None
+                        if online_data:
+                            online_status = online_data.get("status") if isinstance(online_data, dict) else online_data
 
                         all_listings.append({
                             "amount": amount,
                             "currency": currency,
                             "account": account,
+                            "character": character,
+                            "online": online_status,
                             "whisper": listing.get("whisper", ""),
                             "indexed": listing.get("indexed", ""),
                         })
@@ -2897,34 +2301,10 @@ class Plugin:
             }
 
     async def test_clipboard(self) -> Dict[str, Any]:
-        """Test clipboard access and return debug info"""
+        """Test clipboard access - delegated to ClipboardManager"""
         import decky
         decky.logger.info("test_clipboard method called")
-
-        try:
-            import shutil
-
-            debug_info = {
-                "wl_paste_available": shutil.which("wl-paste") is not None,
-                "xclip_available": shutil.which("xclip") is not None,
-                "xsel_available": shutil.which("xsel") is not None,
-                "xdotool_available": shutil.which("xdotool") is not None,
-                "ydotool_available": shutil.which("ydotool") is not None,
-                "wayland_display": os.environ.get("WAYLAND_DISPLAY", "not set"),
-                "display": os.environ.get("DISPLAY", "not set"),
-                "xdg_session_type": os.environ.get("XDG_SESSION_TYPE", "not set"),
-            }
-
-            # Try to read clipboard
-            result = await Plugin.read_clipboard(self)
-            debug_info["clipboard_result"] = result
-
-            return debug_info
-        except Exception as e:
-            decky.logger.error(f"test_clipboard unexpected error: {e}")
-            import traceback
-            decky.logger.error(traceback.format_exc())
-            return {"error": f"Unexpected error: {e}"}
+        return await Plugin.clipboard_manager.test_clipboard()
 
     async def log_debug(self, message: str) -> None:
         """Log debug message from frontend"""
@@ -2932,201 +2312,19 @@ class Plugin:
         decky.logger.info(f"[Frontend Debug] {message}")
 
     async def copy_to_clipboard(self, text: str) -> Dict[str, Any]:
-        """Copy text to clipboard"""
+        """Copy text to clipboard - delegated to ClipboardManager"""
         import decky
         decky.logger.info(f"copy_to_clipboard called ({len(text)} chars)")
-
-        try:
-            env = os.environ.copy()
-            env["DISPLAY"] = ":0"
-            env["XDG_RUNTIME_DIR"] = "/run/user/1000"
-
-            # Try xclip
-            proc = await asyncio.create_subprocess_exec(
-                "xclip", "-selection", "clipboard",
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
-            await proc.communicate(input=text.encode("utf-8"))
-
-            if proc.returncode == 0:
-                return {"success": True}
-
-            return {"success": False, "error": "xclip failed"}
-        except Exception as e:
-            decky.logger.error(f"copy_to_clipboard error: {e}")
-            return {"success": False, "error": str(e)}
+        return await Plugin.clipboard_manager.copy_to_clipboard(text)
 
     async def paste_to_game_chat(self, text: str, send: bool = False) -> Dict[str, Any]:
-        """
-        Paste text into game chat.
-        1. Copy text to clipboard
-        2. Wait a moment for Decky menu to close
-        3. Simulate Enter (open chat)
-        4. Simulate Ctrl+V (paste)
-        5. Optionally simulate Enter again (send)
-        """
+        """Paste text into game chat - delegated to ClipboardManager"""
         import decky
         decky.logger.info(f"paste_to_game_chat called: {text[:50]}...")
-
-        try:
-            env = os.environ.copy()
-            env["DISPLAY"] = ":0"
-            env["XDG_RUNTIME_DIR"] = "/run/user/1000"
-
-            # Step 1: Copy text to clipboard
-            proc = await asyncio.create_subprocess_exec(
-                "xclip", "-selection", "clipboard",
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
-            await proc.communicate(input=text.encode("utf-8"))
-
-            if proc.returncode != 0:
-                return {"success": False, "error": "Failed to copy to clipboard"}
-
-            decky.logger.info("Text copied to clipboard")
-
-            # Step 2: Wait for Decky menu to close and game to regain focus
-            await asyncio.sleep(0.5)
-
-            # Step 3: Simulate Enter to open chat
-            proc = await asyncio.create_subprocess_exec(
-                "xdotool", "key", "Return",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
-            await asyncio.wait_for(proc.communicate(), timeout=3.0)
-            decky.logger.info("Sent Enter to open chat")
-
-            await asyncio.sleep(0.1)
-
-            # Step 4: Simulate Ctrl+V to paste
-            proc = await asyncio.create_subprocess_exec(
-                "xdotool", "key", "ctrl+v",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
-            await asyncio.wait_for(proc.communicate(), timeout=3.0)
-            decky.logger.info("Sent Ctrl+V to paste")
-
-            # Step 5: Optionally send the message
-            if send:
-                await asyncio.sleep(0.1)
-                proc = await asyncio.create_subprocess_exec(
-                    "xdotool", "key", "Return",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env=env
-                )
-                await asyncio.wait_for(proc.communicate(), timeout=3.0)
-                decky.logger.info("Sent Enter to send message")
-
-            return {"success": True}
-
-        except Exception as e:
-            decky.logger.error(f"paste_to_game_chat error: {e}")
-            import traceback
-            decky.logger.error(traceback.format_exc())
-            return {"success": False, "error": str(e)}
+        return await Plugin.clipboard_manager.paste_to_game_chat(text, send)
 
     async def simulate_copy(self) -> Dict[str, Any]:
-        """
-        Simulate Ctrl+C keypress to copy item from game.
-        Tries ydotool (Wayland) first, then xdotool (X11).
-        """
+        """Simulate Ctrl+C keypress - delegated to ClipboardManager"""
         import decky
         decky.logger.info("simulate_copy method called")
-
-        try:
-            # Set up environment for Steam Deck Gaming Mode
-            env = os.environ.copy()
-            if "WAYLAND_DISPLAY" not in env:
-                env["WAYLAND_DISPLAY"] = "wayland-1"
-            if "DISPLAY" not in env:
-                env["DISPLAY"] = ":0"
-            if "XDG_RUNTIME_DIR" not in env:
-                env["XDG_RUNTIME_DIR"] = "/run/user/1000"
-
-            # Try ydotool first (works on Wayland/Steam Deck)
-            try:
-                decky.logger.info("Trying ydotool for Ctrl+C simulation")
-                proc = await asyncio.create_subprocess_exec(
-                    "ydotool", "key", "29:1", "46:1", "46:0", "29:0",  # Ctrl down, C down, C up, Ctrl up
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env=env
-                )
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=3.0)
-
-                if proc.returncode == 0:
-                    # Wait a moment for clipboard to update
-                    await asyncio.sleep(0.2)
-                    decky.logger.info("ydotool Ctrl+C successful")
-                    return {"success": True, "method": "ydotool"}
-                else:
-                    decky.logger.warning(f"ydotool failed: {stderr.decode()}")
-            except FileNotFoundError:
-                decky.logger.warning("ydotool not found")
-            except Exception as e:
-                decky.logger.warning(f"ydotool error: {e}")
-
-            # Try xdotool (works on X11/XWayland)
-            try:
-                decky.logger.info("Trying xdotool for Ctrl+C simulation")
-                proc = await asyncio.create_subprocess_exec(
-                    "xdotool", "key", "ctrl+c",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env=env
-                )
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=3.0)
-
-                if proc.returncode == 0:
-                    await asyncio.sleep(0.2)
-                    decky.logger.info("xdotool Ctrl+C successful")
-                    return {"success": True, "method": "xdotool"}
-                else:
-                    decky.logger.warning(f"xdotool failed: {stderr.decode()}")
-            except FileNotFoundError:
-                decky.logger.warning("xdotool not found")
-            except Exception as e:
-                decky.logger.warning(f"xdotool error: {e}")
-
-            # Try wtype (Wayland native)
-            try:
-                decky.logger.info("Trying wtype for Ctrl+C simulation")
-                proc = await asyncio.create_subprocess_exec(
-                    "wtype", "-M", "ctrl", "-P", "c", "-p", "c", "-m", "ctrl",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env=env
-                )
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=3.0)
-
-                if proc.returncode == 0:
-                    await asyncio.sleep(0.2)
-                    decky.logger.info("wtype Ctrl+C successful")
-                    return {"success": True, "method": "wtype"}
-                else:
-                    decky.logger.warning(f"wtype failed: {stderr.decode()}")
-            except FileNotFoundError:
-                decky.logger.warning("wtype not found")
-            except Exception as e:
-                decky.logger.warning(f"wtype error: {e}")
-
-            return {
-                "success": False,
-                "error": "No tool available to simulate Ctrl+C. Install ydotool: sudo pacman -S ydotool"
-            }
-        except Exception as e:
-            decky.logger.error(f"simulate_copy unexpected error: {e}")
-            import traceback
-            decky.logger.error(traceback.format_exc())
-            return {"success": False, "error": f"Unexpected error: {e}"}
+        return await Plugin.clipboard_manager.simulate_copy()
