@@ -2247,7 +2247,8 @@ class Plugin:
         spirit: Optional[int] = None,
         attack_speed: Optional[float] = None,
         crit_chance: Optional[float] = None,
-        corrupted: Optional[bool] = None
+        corrupted: Optional[bool] = None,
+        rarity: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Build Trade API query for a specific search tier.
@@ -2278,14 +2279,19 @@ class Plugin:
         if base_type:
             query["query"]["type"] = base_type
 
+        # Add rarity filter for unique items
+        if rarity == "Unique":
+            if "type_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["type_filters"] = {"filters": {}}
+            query["query"]["filters"]["type_filters"]["filters"]["rarity"] = {"option": "unique"}
+            decky.logger.info("Added rarity filter: unique")
+
         # Add item level filter (type_filters, not misc_filters)
         if item_level and item_level > 1:
             min_ilvl = max(1, item_level - 10)
-            query["query"]["filters"]["type_filters"] = {
-                "filters": {
-                    "ilvl": {"min": min_ilvl}
-                }
-            }
+            if "type_filters" not in query["query"]["filters"]:
+                query["query"]["filters"]["type_filters"] = {"filters": {}}
+            query["query"]["filters"]["type_filters"]["filters"]["ilvl"] = {"min": min_ilvl}
 
         # Add rune_sockets filter for items with sockets (equipment_filters)
         if socket_count and socket_count >= 2:
@@ -2384,6 +2390,11 @@ class Plugin:
             decky.logger.info(f"Crit Chance filter: min {min_crit}")
 
         # Tier-specific logic
+        # Skip modifier filters for unique items (they have fixed mods, search by name only)
+        if rarity == "Unique":
+            decky.logger.info(f"Unique item: skipping modifier filters, search by name only")
+            return query
+
         if tier == 0:
             # Exact match: all mods, 100% values (no relaxation)
             if modifiers:
@@ -2550,23 +2561,15 @@ class Plugin:
         # Max retries for rate limiting
         max_retries = self.settings.get("max_retries", 2)
 
-        # For uniques and currency, get quick price from poe2scout (on-demand)
+        # For currency, get quick price from poe2scout (uniques now use Trade API like other items)
         decky.logger.info(f"poe2scout check: rarity={rarity}, item_name={item_name}")
-        if rarity in ("Unique", "Currency") and item_name:
+        if rarity == "Currency" and item_name:
             try:
                 decky.logger.info(f"poe2scout lookup: {item_name}")
                 scout_result = await Plugin.get_poe2scout_price(self, item_name, rarity)
                 if scout_result.get("success"):
                     result["poe2scout_price"] = scout_result
                     decky.logger.info(f"poe2scout price: {scout_result.get('price', {}).get('exalted')} exalted")
-
-                    # For uniques with high-confidence poe2scout data, skip Trade API
-                    listings_count = scout_result.get("listings", 0)
-                    if rarity == "Unique" and listings_count >= 10:
-                        decky.logger.info(f"Using poe2scout only for unique (high confidence: {listings_count} listings)")
-                        # Cache this result
-                        self.search_cache.put(item_name, base_type, rarity, modifiers, result)
-                        return result
                 else:
                     decky.logger.info(f"poe2scout no result: {scout_result.get('error')}")
             except Exception as e:
@@ -2588,8 +2591,13 @@ class Plugin:
                     self, tier, search_name, search_type, modifiers, item_level,
                     socket_count, linked_sockets, pdps, edps, gem_level,
                     quality, armour, evasion, energy_shield, block, spirit,
-                    attack_speed, crit_chance, corrupted
+                    attack_speed, crit_chance, corrupted, rarity
                 )
+
+                # For unique items, only run tier 0 (they don't use modifier filters)
+                if rarity == "Unique" and tier > 0:
+                    decky.logger.info(f"Skipping tier {tier} for unique items: search by name only")
+                    continue
 
                 # Skip tier 0, 1, 2 if no modifiers
                 if tier < 3 and not modifiers:
