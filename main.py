@@ -60,11 +60,13 @@ class Plugin:
     scan_history: List[Dict[str, Any]] = None  # type: ignore  # List of scan records
     MAX_SCAN_HISTORY = 50  # Keep last 50 scanned items
     ICON_CACHE_DIR = "icon_cache"  # Subdirectory for cached icons
+    STAT_CACHE_FILE = "stat_cache.json"  # Cached stat IDs from Trade API
 
     # Price learning data - collected from exact matches to improve estimates
     # Structure: {item_class: [{quality_score, mods, price, currency, timestamp}]}
     price_learning: Dict[str, List[Dict[str, Any]]] = None  # type: ignore
     MAX_LEARNING_RECORDS_PER_CLASS = 100  # Keep last 100 records per item class
+    PRICE_LEARNING_VERSION = 2  # Version for data schema (increment to reset old data)
 
     # poe2scout.com cache - loaded once at startup
     poe2scout_cache: Dict[str, Any] = None  # type: ignore  # {items: {name: data}, currency: {apiId: data}}
@@ -337,8 +339,50 @@ class Plugin:
     # STAT ID LOADING
     # =========================================================================
 
-    async def load_stat_ids(self) -> None:
-        """Load stat IDs from Trade API for modifier matching"""
+    def get_stat_cache_path(self) -> str:
+        """Get path to stat cache file"""
+        import decky
+        return os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, Plugin.STAT_CACHE_FILE)
+
+    async def load_stat_cache_from_disk(self) -> bool:
+        """Load stat cache from disk. Returns True if loaded successfully."""
+        import decky
+        cache_path = Plugin.get_stat_cache_path(self)
+
+        try:
+            if os.path.exists(cache_path):
+                with open(cache_path, "r") as f:
+                    data = json.load(f)
+                    Plugin.stat_cache = data.get("cache", {})
+                    count = len(Plugin.stat_cache)
+                    decky.logger.info(f"Loaded {count} stat IDs from disk cache")
+                    return count > 0
+        except Exception as e:
+            decky.logger.error(f"Failed to load stat cache from disk: {e}")
+
+        return False
+
+    async def save_stat_cache_to_disk(self) -> bool:
+        """Save stat cache to disk. Returns True if saved successfully."""
+        import decky
+        cache_path = Plugin.get_stat_cache_path(self)
+
+        try:
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            with open(cache_path, "w") as f:
+                json.dump({
+                    "cache": Plugin.stat_cache,
+                    "timestamp": int(time.time()),
+                    "count": len(Plugin.stat_cache)
+                }, f)
+            decky.logger.info(f"Saved {len(Plugin.stat_cache)} stat IDs to disk cache")
+            return True
+        except Exception as e:
+            decky.logger.error(f"Failed to save stat cache to disk: {e}")
+            return False
+
+    async def load_stat_ids_from_api(self) -> bool:
+        """Load stat IDs from Trade API. Returns True if loaded successfully."""
         import decky
         decky.logger.info("Loading stat IDs from Trade API...")
 
@@ -356,6 +400,7 @@ class Plugin:
             with urllib.request.urlopen(req, timeout=15, context=self.ssl_context) as response:
                 data = json.loads(response.read().decode())
 
+                new_cache = {}
                 count = 0
                 for group in data.get("result", []):
                     for entry in group.get("entries", []):
@@ -363,19 +408,78 @@ class Plugin:
                         text = entry.get("text", "")
 
                         if stat_id and text:
-                            # Normalize text: replace numbers with #
                             import re
                             normalized = re.sub(r'\d+(?:\.\d+)?', '#', text)
                             normalized = normalized.replace('+', '').strip().lower()
-                            Plugin.stat_cache[normalized] = stat_id
+                            new_cache[normalized] = stat_id
                             count += 1
 
-                decky.logger.info(f"Loaded {count} stat IDs")
+                Plugin.stat_cache = new_cache
+                decky.logger.info(f"Loaded {count} stat IDs from API")
+
+                # Save to disk for next time
+                await Plugin.save_stat_cache_to_disk(self)
+                return True
 
         except Exception as e:
-            decky.logger.error(f"Failed to load stat IDs: {e}")
+            decky.logger.error(f"Failed to load stat IDs from API: {e}")
             import traceback
             decky.logger.error(traceback.format_exc())
+            return False
+
+    async def load_stat_ids(self) -> None:
+        """Load stat IDs: first from disk cache, then try to update from API"""
+        import decky
+
+        # First, try to load from disk cache
+        has_cache = await Plugin.load_stat_cache_from_disk(self)
+
+        # Then try to update from API
+        api_success = await Plugin.load_stat_ids_from_api(self)
+
+        if not api_success and not has_cache:
+            decky.logger.warning("No stat IDs available - modifiers won't match!")
+        elif not api_success and has_cache:
+            decky.logger.info("Using cached stat IDs (API unavailable)")
+
+    async def reload_stat_ids(self) -> Dict[str, Any]:
+        """Force reload stat IDs from API. Called from UI."""
+        import decky
+        decky.logger.info("Manual reload of stat IDs requested")
+
+        success = await Plugin.load_stat_ids_from_api(self)
+        count = len(Plugin.stat_cache) if Plugin.stat_cache else 0
+
+        return {
+            "success": success,
+            "count": count,
+            "message": f"Loaded {count} stat IDs" if success else "Failed to load stat IDs from API"
+        }
+
+    async def get_stat_cache_status(self) -> Dict[str, Any]:
+        """Get status of stat cache for UI display"""
+        import decky
+        count = len(Plugin.stat_cache) if Plugin.stat_cache else 0
+        cache_path = Plugin.get_stat_cache_path(self)
+
+        # Check if disk cache exists
+        disk_cache_exists = os.path.exists(cache_path)
+        disk_cache_time = None
+        if disk_cache_exists:
+            try:
+                with open(cache_path, "r") as f:
+                    data = json.load(f)
+                    disk_cache_time = data.get("timestamp")
+            except Exception:
+                pass
+
+        return {
+            "success": True,
+            "loaded": count > 0,
+            "count": count,
+            "diskCacheExists": disk_cache_exists,
+            "diskCacheTimestamp": disk_cache_time
+        }
 
     def find_stat_id(self, modifier_text: str) -> Optional[str]:
         """Find stat ID for a modifier text"""
@@ -969,14 +1073,22 @@ class Plugin:
         if os.path.exists(learning_path):
             try:
                 with open(learning_path, "r") as f:
-                    Plugin.price_learning = json.load(f)
-                total = sum(len(v) for v in Plugin.price_learning.values())
-                decky.logger.info(f"Loaded price learning data: {len(Plugin.price_learning)} classes, {total} records")
+                    data = json.load(f)
+
+                # Check version and reset if outdated
+                stored_version = data.get("_version", 1)
+                if stored_version < Plugin.PRICE_LEARNING_VERSION:
+                    decky.logger.info(f"Price learning data version {stored_version} is outdated (current: {Plugin.PRICE_LEARNING_VERSION}), resetting")
+                    Plugin.price_learning = {"_version": Plugin.PRICE_LEARNING_VERSION}
+                else:
+                    Plugin.price_learning = data
+                    total = sum(len(v) for v in Plugin.price_learning.values() if isinstance(v, list))
+                    decky.logger.info(f"Loaded price learning data v{stored_version}: {len(Plugin.price_learning)} classes, {total} records")
             except Exception as e:
                 decky.logger.error(f"Failed to load price learning: {e}")
-                Plugin.price_learning = {}
+                Plugin.price_learning = {"_version": Plugin.PRICE_LEARNING_VERSION}
         else:
-            Plugin.price_learning = {}
+            Plugin.price_learning = {"_version": Plugin.PRICE_LEARNING_VERSION}
             decky.logger.info("No price learning file found, starting fresh")
 
     async def save_price_learning(self) -> None:
@@ -985,11 +1097,14 @@ class Plugin:
         learning_path = Plugin._get_price_learning_path(self)
 
         try:
+            # Ensure version is always set
+            Plugin.price_learning["_version"] = Plugin.PRICE_LEARNING_VERSION
+
             os.makedirs(os.path.dirname(learning_path), exist_ok=True)
             with open(learning_path, "w") as f:
                 json.dump(Plugin.price_learning, f, indent=2)
-            total = sum(len(v) for v in Plugin.price_learning.values())
-            decky.logger.info(f"Saved price learning data: {len(Plugin.price_learning)} classes, {total} records")
+            total = sum(len(v) for v in Plugin.price_learning.values() if isinstance(v, list))
+            decky.logger.info(f"Saved price learning data v{Plugin.PRICE_LEARNING_VERSION}: {len(Plugin.price_learning)} classes, {total} records")
         except Exception as e:
             decky.logger.error(f"Failed to save price learning: {e}")
 
@@ -1002,7 +1117,12 @@ class Plugin:
         mod_patterns: List[Dict[str, Any]],
         price: float,
         currency: str,
-        search_tier: int
+        search_tier: int,
+        ilvl: Optional[int] = None,
+        rarity: Optional[str] = None,
+        socket_count: Optional[int] = None,
+        total_dps: Optional[float] = None,
+        listings_count: int = 0
     ) -> Dict[str, Any]:
         """
         Add a price learning record for all scans.
@@ -1010,6 +1130,13 @@ class Plugin:
 
         mod_patterns: List of detailed modifier patterns with tier info
             [{pattern: str, tier: int|None, category: str, value: int|None}]
+
+        New fields (v2):
+            ilvl: Item level
+            rarity: "unique" | "rare" | "magic" | "normal"
+            socket_count: Number of sockets
+            total_dps: Total DPS for weapons
+            listings_count: Number of listings found (confidence indicator)
         """
         import decky
 
@@ -1025,7 +1152,12 @@ class Plugin:
             "mod_patterns": mod_patterns,
             "price": price,
             "currency": currency,
-            "search_tier": search_tier
+            "search_tier": search_tier,
+            "ilvl": ilvl,
+            "rarity": rarity,
+            "socket_count": socket_count,
+            "total_dps": total_dps,
+            "listings_count": listings_count
         }
 
         # Add to learning data
@@ -1222,6 +1354,7 @@ class Plugin:
         Get hot modifier patterns with full statistics.
         Returns specific patterns like "+X to maximum Life" instead of generic "life".
         Includes tier distribution and price statistics.
+        Uses median for more accurate price representation.
         """
         import decky
         from collections import defaultdict
@@ -1232,6 +1365,7 @@ class Plugin:
         # Aggregate by pattern
         pattern_stats = defaultdict(lambda: {
             "prices": [],
+            "weighted_prices": [],  # (price, weight) tuples for weighted analysis
             "tiers": [],
             "category": None,
             "count": 0
@@ -1239,25 +1373,31 @@ class Plugin:
 
         total_records = 0
         for item_class, records in Plugin.price_learning.items():
+            # Skip version field
+            if item_class.startswith("_"):
+                continue
+            if not isinstance(records, list):
+                continue
+
             for record in records:
                 total_records += 1
                 mod_patterns = record.get("mod_patterns", [])
 
-                # Normalize price to exalted for comparison
-                raw_price = record.get("price", 0)
-                currency = record.get("currency", "exalted").lower()
-                if currency in ["divine", "div"]:
-                    price = raw_price * 0.5  # Divine ≈ 0.5 ex
-                elif currency in ["chaos", "c"]:
-                    price = raw_price / 100.0  # 100 chaos ≈ 1 ex
-                else:
-                    price = raw_price
+                # Use new helper function for price normalization
+                price = Plugin._normalize_price_to_exalted(
+                    record.get("price", 0),
+                    record.get("currency", "exalted")
+                )
+
+                # Calculate confidence weight for this record
+                weight = Plugin._calculate_confidence_weight(record)
 
                 for mp in mod_patterns:
                     pattern = mp.get("pattern", "")
                     if not pattern:
                         continue
                     pattern_stats[pattern]["prices"].append(price)
+                    pattern_stats[pattern]["weighted_prices"].append((price, weight))
                     tier = mp.get("tier")
                     if tier is not None:
                         pattern_stats[pattern]["tiers"].append(tier)
@@ -1270,6 +1410,7 @@ class Plugin:
                     for cat in record.get("mod_categories", []):
                         fallback_pattern = f"[{cat}]"
                         pattern_stats[fallback_pattern]["prices"].append(price)
+                        pattern_stats[fallback_pattern]["weighted_prices"].append((price, weight))
                         pattern_stats[fallback_pattern]["category"] = cat
                         pattern_stats[fallback_pattern]["count"] += 1
 
@@ -1284,6 +1425,9 @@ class Plugin:
 
             prices = stats["prices"]
             tiers = [t for t in stats["tiers"] if t and t > 0]
+
+            # Calculate median price (more robust than mean)
+            median_price = Plugin._calculate_median(prices)
 
             # Tier distribution
             tier_dist = {"T1": 0, "T2": 0, "T3": 0, "T4": 0, "T5+": 0}
@@ -1309,6 +1453,7 @@ class Plugin:
                 "display_name": display_name,
                 "category": stats["category"],
                 "count": stats["count"],
+                "median_price": round(median_price, 1),
                 "avg_price": round(sum(prices) / len(prices), 1),
                 "min_price": round(min(prices), 1),
                 "max_price": round(max(prices), 1),
@@ -1316,8 +1461,8 @@ class Plugin:
                 "avg_tier": round(sum(tiers) / len(tiers), 1) if tiers else None
             })
 
-        # Sort by count * avg_price (popularity weighted by value)
-        hot_patterns.sort(key=lambda x: x["count"] * x["avg_price"], reverse=True)
+        # Sort by count * median_price (popularity weighted by value)
+        hot_patterns.sort(key=lambda x: x["count"] * x["median_price"], reverse=True)
 
         decky.logger.info(f"Hot patterns: {len(hot_patterns)} patterns from {total_records} records")
 
@@ -1326,6 +1471,51 @@ class Plugin:
             "patterns": hot_patterns[:limit],
             "total_patterns": len(hot_patterns)
         }
+
+    @staticmethod
+    def _normalize_price_to_exalted(price: float, currency: str) -> float:
+        """Normalize any currency to exalted equivalent"""
+        currency = currency.lower() if currency else "exalted"
+        if currency in ["divine", "divine-orb", "div"]:
+            return price * 0.5
+        elif currency in ["chaos", "chaos-orb", "c"]:
+            return price / 100.0
+        return price
+
+    @staticmethod
+    def _calculate_median(values: List[float]) -> float:
+        """Calculate median of a list of values"""
+        if not values:
+            return 0.0
+        sorted_vals = sorted(values)
+        n = len(sorted_vals)
+        if n % 2 == 1:
+            return sorted_vals[n // 2]
+        return (sorted_vals[n // 2 - 1] + sorted_vals[n // 2]) / 2
+
+    @staticmethod
+    def _calculate_confidence_weight(record: Dict[str, Any]) -> float:
+        """
+        Calculate confidence weight for a record.
+        Higher weight = more reliable data point.
+        """
+        weight = 1.0
+
+        # Search tier weighting (exact match = highest confidence)
+        search_tier = record.get("search_tier", 3)
+        tier_weights = {0: 1.5, 1: 1.2, 2: 0.9, 3: 0.6}
+        weight *= tier_weights.get(search_tier, 0.5)
+
+        # Listings count weighting (more listings = more confidence)
+        listings = record.get("listings_count", 1)
+        if listings >= 10:
+            weight *= 1.3
+        elif listings >= 5:
+            weight *= 1.1
+        elif listings <= 2:
+            weight *= 0.7
+
+        return weight
 
     async def get_learning_stats(self) -> Dict[str, Any]:
         """Get statistics about collected learning data"""
@@ -1339,14 +1529,26 @@ class Plugin:
                 "classes": {}
             }
 
-        total = sum(len(v) for v in Plugin.price_learning.values())
+        total = sum(len(v) for v in Plugin.price_learning.values() if isinstance(v, list))
         classes = {}
         for item_class, records in Plugin.price_learning.items():
-            if records:
-                prices = [r.get("price_exalted", 0) for r in records]
+            # Skip version field
+            if item_class.startswith("_"):
+                continue
+            if records and isinstance(records, list):
+                # FIX: normalize prices properly (was using non-existent price_exalted field)
+                prices = [
+                    Plugin._normalize_price_to_exalted(
+                        r.get("price", 0),
+                        r.get("currency", "exalted")
+                    )
+                    for r in records
+                ]
+                median_price = Plugin._calculate_median(prices)
                 classes[item_class] = {
                     "count": len(records),
                     "avg_price": round(sum(prices) / len(prices), 1) if prices else 0,
+                    "median_price": round(median_price, 1),
                     "min_price": round(min(prices), 1) if prices else 0,
                     "max_price": round(max(prices), 1) if prices else 0
                 }
@@ -1354,8 +1556,191 @@ class Plugin:
         return {
             "success": True,
             "total_records": total,
-            "item_classes": len(Plugin.price_learning),
+            "item_classes": len([k for k in Plugin.price_learning.keys() if not k.startswith("_")]),
             "classes": classes
+        }
+
+    async def get_price_trends(self, days: int = 7) -> Dict[str, Any]:
+        """
+        Analyze price trends over time for item classes.
+        Returns daily medians and trend direction.
+        """
+        import decky
+        from collections import defaultdict
+
+        if not Plugin.price_learning:
+            return {"success": False, "error": "No data", "trends": []}
+
+        now = int(time.time())
+        day_seconds = 86400
+        cutoff = now - (days * day_seconds)
+
+        # Group by item class and day
+        class_daily_prices = defaultdict(lambda: defaultdict(list))
+
+        for item_class, records in Plugin.price_learning.items():
+            # Skip version field
+            if item_class.startswith("_"):
+                continue
+            if not isinstance(records, list):
+                continue
+
+            for record in records:
+                ts = record.get("timestamp", 0)
+                if ts < cutoff:
+                    continue
+
+                price = Plugin._normalize_price_to_exalted(
+                    record.get("price", 0),
+                    record.get("currency", "exalted")
+                )
+
+                # Calculate day index (0 = today, 1 = yesterday, etc.)
+                day_index = (now - ts) // day_seconds
+                class_daily_prices[item_class][day_index].append(price)
+
+        trends = []
+        for item_class, daily_data in class_daily_prices.items():
+            if not daily_data:
+                continue
+
+            daily_medians = []
+            for day_idx in range(days):
+                prices = daily_data.get(day_idx, [])
+                if prices:
+                    median = Plugin._calculate_median(prices)
+                    daily_medians.append({"day": day_idx, "median": round(median, 1), "count": len(prices)})
+
+            if len(daily_medians) < 2:
+                continue
+
+            # Calculate trend (compare recent vs older)
+            recent_prices = [d["median"] for d in daily_medians if d["day"] <= 2]
+            older_prices = [d["median"] for d in daily_medians if d["day"] > 2]
+
+            if recent_prices and older_prices:
+                recent_avg = sum(recent_prices) / len(recent_prices)
+                older_avg = sum(older_prices) / len(older_prices)
+                change_percent = ((recent_avg - older_avg) / older_avg * 100) if older_avg > 0 else 0
+
+                if change_percent > 10:
+                    trend_direction = "up"
+                elif change_percent < -10:
+                    trend_direction = "down"
+                else:
+                    trend_direction = "stable"
+            else:
+                change_percent = 0
+                trend_direction = "unknown"
+
+            trends.append({
+                "item_class": item_class.replace("_", " ").title(),
+                "daily_data": daily_medians,
+                "trend": trend_direction,
+                "change_percent": round(change_percent, 1),
+                "current_median": daily_medians[0]["median"] if daily_medians else 0
+            })
+
+        trends.sort(key=lambda x: abs(x["change_percent"]), reverse=True)
+
+        decky.logger.info(f"Price trends: {len(trends)} item classes over {days} days")
+
+        return {
+            "success": True,
+            "trends": trends[:10],
+            "period_days": days
+        }
+
+    async def get_quality_correlation(self) -> Dict[str, Any]:
+        """
+        Analyze correlation between item quality scores and prices.
+        Returns data for quality-price analysis.
+        """
+        import decky
+        from collections import defaultdict
+
+        if not Plugin.price_learning:
+            return {"success": False, "error": "No data", "correlations": []}
+
+        # Collect quality-price pairs by item class
+        class_data = defaultdict(list)
+
+        for item_class, records in Plugin.price_learning.items():
+            # Skip version field
+            if item_class.startswith("_"):
+                continue
+            if not isinstance(records, list):
+                continue
+
+            for record in records:
+                quality = record.get("quality_score", 0)
+                price = Plugin._normalize_price_to_exalted(
+                    record.get("price", 0),
+                    record.get("currency", "exalted")
+                )
+                class_data[item_class].append({
+                    "quality": quality,
+                    "price": price,
+                    "ilvl": record.get("ilvl"),
+                    "search_tier": record.get("search_tier", 3)
+                })
+
+        correlations = []
+        for item_class, data_points in class_data.items():
+            if len(data_points) < 5:
+                continue
+
+            # Calculate Pearson correlation coefficient
+            qualities = [d["quality"] for d in data_points]
+            prices = [d["price"] for d in data_points]
+
+            n = len(qualities)
+            mean_q = sum(qualities) / n
+            mean_p = sum(prices) / n
+
+            # Pearson correlation
+            numerator = sum((q - mean_q) * (p - mean_p) for q, p in zip(qualities, prices))
+            denom_q = sum((q - mean_q) ** 2 for q in qualities) ** 0.5
+            denom_p = sum((p - mean_p) ** 2 for p in prices) ** 0.5
+
+            if denom_q > 0 and denom_p > 0:
+                correlation = numerator / (denom_q * denom_p)
+            else:
+                correlation = 0
+
+            # Bucket quality scores for visualization
+            buckets = {"0-25": [], "26-50": [], "51-75": [], "76-100": []}
+            for d in data_points:
+                q = d["quality"]
+                if q <= 25:
+                    buckets["0-25"].append(d["price"])
+                elif q <= 50:
+                    buckets["26-50"].append(d["price"])
+                elif q <= 75:
+                    buckets["51-75"].append(d["price"])
+                else:
+                    buckets["76-100"].append(d["price"])
+
+            bucket_medians = {}
+            for bucket, prices_list in buckets.items():
+                if prices_list:
+                    bucket_medians[bucket] = round(Plugin._calculate_median(prices_list), 1)
+
+            correlations.append({
+                "item_class": item_class.replace("_", " ").title(),
+                "correlation": round(correlation, 2),
+                "sample_size": len(data_points),
+                "bucket_medians": bucket_medians
+            })
+
+        # Sort by absolute correlation
+        correlations.sort(key=lambda x: abs(x["correlation"]), reverse=True)
+
+        decky.logger.info(f"Quality correlations: {len(correlations)} item classes")
+
+        return {
+            "success": True,
+            "correlations": correlations[:10]
         }
 
     async def get_price_dynamics(
