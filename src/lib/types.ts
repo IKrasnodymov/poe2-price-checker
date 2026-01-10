@@ -24,6 +24,9 @@ export interface ParsedItem {
   quality?: number;
   itemLevel?: number;
   levelRequired?: number;
+  strRequired?: number;
+  dexRequired?: number;
+  intRequired?: number;
 
   // Sockets
   sockets?: string;

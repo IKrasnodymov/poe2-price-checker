@@ -125,6 +125,33 @@ export const ItemDisplay: FC<ItemDisplayProps> = ({ item }) => {
             )}
           </div>
 
+          {/* Attribute requirements */}
+          {(item.strRequired || item.dexRequired || item.intRequired) && (
+            <div style={{
+              display: "flex",
+              gap: 10,
+              marginTop: 4,
+              fontSize: 11,
+              color: "#888"
+            }}>
+              {item.strRequired && (
+                <span style={{ color: "#e74c3c" }}>
+                  <strong>STR</strong> {item.strRequired}
+                </span>
+              )}
+              {item.dexRequired && (
+                <span style={{ color: "#2ecc71" }}>
+                  <strong>DEX</strong> {item.dexRequired}
+                </span>
+              )}
+              {item.intRequired && (
+                <span style={{ color: "#3498db" }}>
+                  <strong>INT</strong> {item.intRequired}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Sockets */}
           {item.sockets && (
             <div style={{

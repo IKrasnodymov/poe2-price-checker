@@ -1,7 +1,7 @@
 // src/components/PriceCheckContent.tsx
 // Main price check content component
 
-import { FC, useState, useEffect, useCallback, useMemo } from "react";
+import { FC, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Spinner } from "@decky/ui";
 import { call } from "@decky/api";
 import { FaExclamationTriangle, FaSync } from "react-icons/fa";
@@ -19,7 +19,17 @@ import {
 import { parseItemText, getAllModifiers } from "../lib/itemParser";
 import { formatPrice, matchModifier, getModifierPriority, normalizeModifierText } from "../utils/modifierMatcher";
 import { calculatePriceStats } from "../utils/formatting";
-import { RARITY_COLORS, ERROR_CONTAINER } from "../styles/constants";
+import {
+  RARITY_COLORS,
+  ERROR_CONTAINER,
+  CARD_STYLES,
+  PRICE_STYLES,
+  FLEX_CENTER,
+  FILTER_PANEL_STYLES,
+  QUICK_ACTION_STYLE,
+  BADGE_STYLES,
+  SEMANTIC_COLORS,
+} from "../styles/constants";
 
 import { SettingsPanel } from "./SettingsPanel";
 import { HistoryPanel } from "./HistoryPanel";
@@ -53,6 +63,8 @@ export const PriceCheckContent: FC = () => {
   const [modifiers, setModifiers] = useState<ItemModifier[]>([]);
   const [autoChecked, setAutoChecked] = useState(false);
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(null);
+  const autoCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastClipboardHashRef = useRef<string>("");
   const [settings, setSettings] = useState<PluginSettings>({
     league: "Fate of the Vaal",
     useTradeApi: true,
@@ -104,12 +116,21 @@ export const PriceCheckContent: FC = () => {
     loadTierData();
   }, []);
 
+  // Rate limit countdown state
+  const [rateLimitCountdown, setRateLimitCountdown] = useState<number>(0);
+
   // Check rate limit status periodically
   useEffect(() => {
     const checkRateLimit = async () => {
       try {
         const status = await call<[], RateLimitStatus>("get_rate_limit_status");
         setRateLimitStatus(status);
+        // Update countdown if rate limited
+        if (status.rate_limited && status.remaining_seconds) {
+          setRateLimitCountdown(Math.ceil(status.remaining_seconds));
+        } else {
+          setRateLimitCountdown(0);
+        }
       } catch (e) {
         console.error("Failed to check rate limit:", e);
       }
@@ -118,6 +139,24 @@ export const PriceCheckContent: FC = () => {
     const interval = setInterval(checkRateLimit, 5000); // Check every 5 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Countdown timer for rate limit (updates every second for smooth countdown)
+  useEffect(() => {
+    if (rateLimitCountdown <= 0) return;
+
+    const countdownInterval = setInterval(() => {
+      setRateLimitCountdown(prev => {
+        if (prev <= 1) {
+          // Clear rate limit status when countdown finishes
+          setRateLimitStatus(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, [rateLimitCountdown > 0]);
 
   // Compute item evaluation when we have a parsed item
   const itemEvaluation = useMemo<ItemEvaluation | null>(() => {
@@ -419,17 +458,50 @@ export const PriceCheckContent: FC = () => {
     }
   }, [checkPrice]);
 
-  // Auto-check on mount
+  // Simple hash function for clipboard text
+  const getClipboardHash = (text: string): string => {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = ((hash << 5) - hash) + text.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash.toString();
+  };
+
+  // Auto-check on mount with debouncing to prevent race conditions
   useEffect(() => {
     if (autoChecked) return;
     if (!settings.autoCheckOnOpen) return;
 
     setAutoChecked(true);
 
-    const timer = setTimeout(async () => {
+    // Clear any existing timer
+    if (autoCheckTimerRef.current) {
+      clearTimeout(autoCheckTimerRef.current);
+    }
+
+    autoCheckTimerRef.current = setTimeout(async () => {
       try {
         const clipboardResult = await call<[], ClipboardResult>("read_clipboard");
         if (!clipboardResult.success || !clipboardResult.text) return;
+
+        // Store hash of current clipboard to detect changes
+        const currentHash = getClipboardHash(clipboardResult.text);
+        lastClipboardHashRef.current = currentHash;
+
+        // Small delay to check if clipboard changed (debounce)
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Re-read clipboard and verify it hasn't changed
+        const verifyResult = await call<[], ClipboardResult>("read_clipboard");
+        if (!verifyResult.success || !verifyResult.text) return;
+
+        const verifyHash = getClipboardHash(verifyResult.text);
+        if (verifyHash !== currentHash) {
+          // Clipboard changed during debounce, skip this check
+          console.log("Clipboard changed during auto-check, skipping stale data");
+          return;
+        }
 
         const item = parseItemText(clipboardResult.text);
         if (!item) return;
@@ -455,9 +527,13 @@ export const PriceCheckContent: FC = () => {
       } catch (e) {
         console.error("Auto-check failed:", e);
       }
-    }, 500);
+    }, 300); // Reduced from 500ms for faster response
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (autoCheckTimerRef.current) {
+        clearTimeout(autoCheckTimerRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -526,24 +602,8 @@ export const PriceCheckContent: FC = () => {
     <>
       {/* Quick Price Summary */}
       {parsedItem && tieredResult && tieredResult.success && tieredResult.tiers.length > 0 && (
-        <div style={{
-          background: "linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,180,0,0.05) 100%)",
-          border: "1px solid rgba(255,215,0,0.3)",
-          borderRadius: 8,
-          padding: "10px 12px",
-          margin: "8px 16px",
-          boxSizing: "border-box",
-          maxWidth: "100%",
-          overflow: "hidden",
-        }}>
-          <div style={{
-            fontSize: 20,
-            fontWeight: "bold",
-            color: "#ffd700",
-            textShadow: "0 0 10px rgba(255,215,0,0.3)",
-            textAlign: "center",
-            marginBottom: 6,
-          }}>
+        <div style={CARD_STYLES.gold}>
+          <div style={{ ...PRICE_STYLES.large, textAlign: "center", marginBottom: 6 }}>
             {(() => {
               const tierWithListings = tieredResult.tiers.find(t => t.listings && t.listings.length > 0);
               if (!tierWithListings) return "No price";
@@ -627,27 +687,53 @@ export const PriceCheckContent: FC = () => {
         isRateLimited={rateLimitStatus?.rate_limited}
       />
 
-      {/* Rate Limit Warning */}
-      {rateLimitStatus?.rate_limited && (
+      {/* Rate Limit Warning with Live Countdown */}
+      {(rateLimitStatus?.rate_limited || rateLimitCountdown > 0) && (
         <div style={{
-          background: "rgba(255, 100, 100, 0.15)",
-          border: "1px solid rgba(255, 100, 100, 0.4)",
-          borderRadius: 8,
-          padding: "10px 12px",
-          margin: "8px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
+          ...CARD_STYLES.error,
+          background: "linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,107,107,0.05))",
+          border: "1px solid rgba(255,107,107,0.3)",
         }}>
-          <span style={{ fontSize: 18 }}>⏳</span>
-          <div>
-            <div style={{ color: "#ff6b6b", fontSize: 12, fontWeight: "bold" }}>
+          <div style={{
+            fontSize: 24,
+            fontWeight: "bold",
+            color: SEMANTIC_COLORS.error,
+            minWidth: 48,
+            textAlign: "center",
+          }}>
+            {rateLimitCountdown > 0 ? `${rateLimitCountdown}s` : "⏳"}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: SEMANTIC_COLORS.error, fontSize: 12, fontWeight: "bold" }}>
               Rate Limited
             </div>
             <div style={{ color: "#aaa", fontSize: 11 }}>
-              Trade API blocked. Try again at {rateLimitStatus.until}
+              {rateLimitCountdown > 0
+                ? `Trade API cooling down... ${Math.floor(rateLimitCountdown / 60)}:${(rateLimitCountdown % 60).toString().padStart(2, '0')}`
+                : `Try again at ${rateLimitStatus?.until || "shortly"}`
+              }
             </div>
           </div>
+          {/* Progress bar */}
+          {rateLimitCountdown > 0 && rateLimitStatus?.remaining_seconds && (
+            <div style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 3,
+              background: "rgba(255,107,107,0.2)",
+              borderRadius: "0 0 4px 4px",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                width: `${(1 - rateLimitCountdown / rateLimitStatus.remaining_seconds) * 100}%`,
+                height: "100%",
+                background: SEMANTIC_COLORS.error,
+                transition: "width 1s linear",
+              }} />
+            </div>
+          )}
         </div>
       )}
 
@@ -661,16 +747,7 @@ export const PriceCheckContent: FC = () => {
 
       {/* Loading indicator */}
       {isLoading && parsedItem && (
-        <div style={{
-          background: "rgba(255,255,255,0.05)",
-          borderRadius: 8,
-          padding: 12,
-          margin: "8px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8
-        }}>
+        <div style={CARD_STYLES.neutral}>
           <Spinner style={{ width: 16, height: 16 }} />
           <span style={{ color: "#888" }}>Searching...</span>
         </div>
@@ -680,23 +757,9 @@ export const PriceCheckContent: FC = () => {
 
       {/* Quick Search Button */}
       {parsedItem && !tieredResult && !isLoading && modifiers.length === 0 && (
-        <div
-          onClick={() => checkPrice(true)}
-          style={{
-            background: "linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,180,0,0.15) 100%)",
-            border: "1px solid rgba(255,215,0,0.4)",
-            borderRadius: 8,
-            padding: "12px 16px",
-            margin: "8px 16px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-          }}
-        >
-          <FaSync style={{ color: "#ffd700", fontSize: 14 }} />
-          <span style={{ color: "#ffd700", fontWeight: "bold", fontSize: 14 }}>
+        <div onClick={() => checkPrice(true)} style={QUICK_ACTION_STYLE}>
+          <FaSync style={{ color: SEMANTIC_COLORS.price, fontSize: 14 }} />
+          <span style={{ color: SEMANTIC_COLORS.price, fontWeight: "bold", fontSize: 14 }}>
             Find Price
           </span>
         </div>
@@ -705,15 +768,7 @@ export const PriceCheckContent: FC = () => {
       {/* Modifier Filters */}
       {modifiers.length > 0 && (
         <div style={{ margin: "8px 16px" }}>
-          <div style={{
-            background: "linear-gradient(135deg, rgba(100,100,100,0.3) 0%, rgba(60,60,60,0.2) 100%)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: "8px 8px 0 0",
-            padding: "8px 12px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
+          <div style={FILTER_PANEL_STYLES.header}>
             <span style={{ color: "#ddd", fontSize: 12 }}>
               Modifiers ({modifiers.filter(m => m.enabled).length}/{modifiers.length})
             </span>
@@ -721,11 +776,8 @@ export const PriceCheckContent: FC = () => {
               <span
                 onClick={() => setModifiers(modifiers.map(m => ({ ...m, enabled: true })))}
                 style={{
-                  fontSize: 10,
-                  color: "#4dabf7",
-                  cursor: "pointer",
-                  padding: "2px 6px",
-                  borderRadius: 3,
+                  ...BADGE_STYLES.tag,
+                  color: SEMANTIC_COLORS.info,
                   background: "rgba(77,171,247,0.1)",
                 }}
               >
@@ -734,11 +786,8 @@ export const PriceCheckContent: FC = () => {
               <span
                 onClick={() => setModifiers(modifiers.map(m => ({ ...m, enabled: false })))}
                 style={{
-                  fontSize: 10,
-                  color: "#868e96",
-                  cursor: "pointer",
-                  padding: "2px 6px",
-                  borderRadius: 3,
+                  ...BADGE_STYLES.tag,
+                  color: SEMANTIC_COLORS.muted,
                   background: "rgba(134,142,150,0.1)",
                 }}
               >
@@ -747,13 +796,7 @@ export const PriceCheckContent: FC = () => {
             </div>
           </div>
 
-          <div style={{
-            background: "rgba(30,30,30,0.9)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderTop: "none",
-            maxHeight: 200,
-            overflowY: "auto",
-          }}>
+          <div style={FILTER_PANEL_STYLES.content}>
             {(() => {
               const modifierIndex = new Map(modifiers.map((m, i) => [m, i]));
               const implicits = modifiers.filter(m => m.type === "implicit");
@@ -772,7 +815,7 @@ export const PriceCheckContent: FC = () => {
                     />
                   ))}
                   {implicits.length > 0 && explicits.length > 0 && (
-                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", margin: "0" }} />
+                    <div style={FILTER_PANEL_STYLES.divider} />
                   )}
                   {explicits.map((mod) => (
                     <ModifierFilterItem
@@ -784,7 +827,7 @@ export const PriceCheckContent: FC = () => {
                     />
                   ))}
                   {crafted.length > 0 && (
-                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", margin: "0" }} />
+                    <div style={FILTER_PANEL_STYLES.divider} />
                   )}
                   {crafted.map((mod) => (
                     <ModifierFilterItem
@@ -802,24 +845,13 @@ export const PriceCheckContent: FC = () => {
 
           <div
             onClick={(isLoading || rateLimitStatus?.rate_limited) ? undefined : reSearch}
-            style={{
-              background: rateLimitStatus?.rate_limited
-                ? "linear-gradient(135deg, rgba(255,100,100,0.2) 0%, rgba(255,80,80,0.1) 100%)"
-                : "linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,180,0,0.1) 100%)",
-              border: `1px solid ${rateLimitStatus?.rate_limited ? "rgba(255,100,100,0.3)" : "rgba(255,215,0,0.3)"}`,
-              borderTop: "none",
-              borderRadius: "0 0 8px 8px",
-              padding: "10px 12px",
-              cursor: (isLoading || rateLimitStatus?.rate_limited) ? "not-allowed" : "pointer",
-              opacity: (isLoading || rateLimitStatus?.rate_limited) ? 0.5 : 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
+            style={FILTER_PANEL_STYLES.footer(
+              isLoading || !!rateLimitStatus?.rate_limited,
+              !!rateLimitStatus?.rate_limited
+            )}
           >
-            <FaSync style={{ color: rateLimitStatus?.rate_limited ? "#ff6b6b" : "#ffd700" }} />
-            <span style={{ color: rateLimitStatus?.rate_limited ? "#ff6b6b" : "#ffd700", fontWeight: "bold", fontSize: 12 }}>
+            <FaSync style={{ color: rateLimitStatus?.rate_limited ? SEMANTIC_COLORS.error : SEMANTIC_COLORS.price }} />
+            <span style={{ color: rateLimitStatus?.rate_limited ? SEMANTIC_COLORS.error : SEMANTIC_COLORS.price, fontWeight: "bold", fontSize: 12 }}>
               {rateLimitStatus?.rate_limited ? "Rate Limited" : `Search (${modifiers.filter(m => m.enabled).length} filters)`}
             </span>
           </div>

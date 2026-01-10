@@ -32,6 +32,8 @@ class AdaptiveRateLimiter:
     - X-Rate-Limit-Rules: Ip,Account
     - X-Rate-Limit-Ip: 5:5:10,10:10:30,15:10:300  (requests:period:timeout)
     - X-Rate-Limit-Ip-State: 2:5:0,2:10:0,2:10:0
+
+    Thread-safe: Uses asyncio.Lock to protect concurrent access to shared state.
     """
 
     def __init__(self, policy_name: str, default_interval: float = 2.5):
@@ -49,6 +51,15 @@ class AdaptiveRateLimiter:
         # Backoff state
         self.consecutive_429s = 0
         self.backoff_until = 0.0
+
+        # Lock for thread-safe access to shared state
+        self._lock: Optional[asyncio.Lock] = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        """Lazy initialization of lock to ensure it's created in the right event loop."""
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     def parse_headers(self, headers: Dict[str, str]) -> None:
         """Parse X-Rate-Limit headers from API response"""
@@ -143,21 +154,35 @@ class AdaptiveRateLimiter:
         self.current_interval = min_safe_interval
 
     async def wait(self) -> None:
-        """Wait appropriate time before next request"""
-        now = time.time()
+        """
+        Wait appropriate time before next request.
 
-        # Check backoff from 429
-        if now < self.backoff_until:
-            wait_time = self.backoff_until - now
-            await asyncio.sleep(wait_time)
+        Thread-safe: Uses lock to serialize access, ensuring only one request
+        proceeds at a time through the rate limiting logic.
+        """
+        # Acquire lock to serialize requests - this ensures proper ordering
+        # and prevents race conditions when multiple coroutines call wait()
+        async with self._get_lock():
             now = time.time()
 
-        # Standard rate limiting
-        elapsed = now - self.last_request
-        if elapsed < self.current_interval:
-            await asyncio.sleep(self.current_interval - elapsed)
+            # Calculate total wait time needed
+            sleep_time = 0.0
 
-        self.last_request = time.time()
+            # Check backoff from 429
+            if now < self.backoff_until:
+                sleep_time = self.backoff_until - now
+
+            # Standard rate limiting (after backoff)
+            elapsed = (now + sleep_time) - self.last_request
+            if elapsed < self.current_interval:
+                sleep_time += self.current_interval - elapsed
+
+            # Sleep if needed (while holding lock to maintain ordering)
+            if sleep_time > 0:
+                await asyncio.sleep(sleep_time)
+
+            # Update last request time
+            self.last_request = time.time()
 
     def handle_429(self, retry_after: Optional[int] = None) -> float:
         """Handle 429 response with exponential backoff. Returns wait time."""

@@ -7,11 +7,25 @@ import {
   PanelSectionRow,
 } from "@decky/ui";
 import { call } from "@decky/api";
-import { FaCopy } from "react-icons/fa";
+import { FaCopy, FaArrowUp, FaArrowDown, FaMinus } from "react-icons/fa";
 import { ParsedItem, TieredSearchResult, SearchTier } from "../lib/types";
 import { formatPrice, getBestPrice } from "../utils/modifierMatcher";
 import { formatIndexedTimeCompact, calculatePriceStats, calculateStatsByCurrency, PriceStats } from "../utils/formatting";
-import { TIER_COLORS } from "../styles/constants";
+import {
+  TIER_COLORS,
+  FRESHNESS_COLORS,
+  CONFIDENCE_COLORS,
+  VOLATILITY_COLORS,
+  CARD_STYLES,
+  LISTING_STYLES,
+  BADGE_STYLES,
+  PRICE_STYLES,
+  TEXT_STYLES,
+  FLEX_BETWEEN,
+  getTierCardStyle,
+  getTierHeaderStyle,
+  BUTTON_STYLES,
+} from "../styles/constants";
 import { ItemEvaluation, estimatePrice, PriceEstimate } from "../utils/itemEvaluator";
 
 interface TieredPriceDisplayProps {
@@ -88,13 +102,92 @@ const getListingFreshness = (indexed: string): FreshnessInfo => {
 };
 
 const getFreshnessColor = (freshness: ListingFreshness): string => {
-  switch (freshness) {
-    case "fresh": return "#51cf66";      // Green
-    case "normal": return "#666";         // Gray
-    case "stale": return "#f59f00";       // Orange
-    case "very_stale": return "#ff6b6b";  // Red
-    default: return "#666";
+  return FRESHNESS_COLORS[freshness] || FRESHNESS_COLORS.normal;
+};
+
+// Price trend indicator component
+interface TrendIndicatorProps {
+  trend: "up" | "down" | "stable" | "unknown";
+  changePercent?: number;
+  size?: "small" | "medium";
+}
+
+const TrendIndicator: FC<TrendIndicatorProps> = ({ trend, changePercent, size = "small" }) => {
+  const iconSize = size === "small" ? 10 : 14;
+
+  const getStyle = (): React.CSSProperties => {
+    const base = {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3,
+      fontSize: size === "small" ? 10 : 12,
+      padding: "2px 5px",
+      borderRadius: 3,
+    };
+
+    switch (trend) {
+      case "up":
+        return {
+          ...base,
+          color: "#ff6b6b",
+          backgroundColor: "rgba(255, 107, 107, 0.15)",
+        };
+      case "down":
+        return {
+          ...base,
+          color: "#51cf66",
+          backgroundColor: "rgba(81, 207, 102, 0.15)",
+        };
+      case "stable":
+        return {
+          ...base,
+          color: "#888",
+          backgroundColor: "rgba(136, 136, 136, 0.15)",
+        };
+      default:
+        return base;
+    }
+  };
+
+  if (trend === "unknown") return null;
+
+  return (
+    <span style={getStyle()}>
+      {trend === "up" && <FaArrowUp size={iconSize} />}
+      {trend === "down" && <FaArrowDown size={iconSize} />}
+      {trend === "stable" && <FaMinus size={iconSize} />}
+      {changePercent !== undefined && Math.abs(changePercent) > 0.5 && (
+        <span>{changePercent > 0 ? "+" : ""}{changePercent.toFixed(1)}%</span>
+      )}
+    </span>
+  );
+};
+
+// Analyze price volatility from listings
+const analyzePriceVolatility = (listings: { chaosValue?: number }[]): {
+  volatility: "low" | "medium" | "high";
+  spreadPercent: number;
+} => {
+  if (!listings || listings.length < 2) {
+    return { volatility: "low", spreadPercent: 0 };
   }
+
+  const values = listings
+    .map(l => l.chaosValue || 0)
+    .filter(v => v > 0)
+    .sort((a, b) => a - b);
+
+  if (values.length < 2) {
+    return { volatility: "low", spreadPercent: 0 };
+  }
+
+  const min = values[0];
+  const max = values[values.length - 1];
+  const spreadPercent = min > 0 ? ((max - min) / min) * 100 : 0;
+
+  if (spreadPercent > 100) return { volatility: "high", spreadPercent };
+  if (spreadPercent > 50) return { volatility: "medium", spreadPercent };
+  return { volatility: "low", spreadPercent };
 };
 
 export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEvaluation }) => {
@@ -195,17 +288,8 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
     <>
       {/* poe2scout quick result (if available) */}
       {result.poe2scout_price?.success && result.poe2scout_price.price && (
-        <div style={{
-          background: "rgba(30, 144, 255, 0.1)",
-          border: "1px solid rgba(30, 144, 255, 0.3)",
-          borderRadius: 6,
-          padding: "8px 12px",
-          margin: "8px 16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-          <span style={{ fontSize: 11, color: "#888" }}>poe2scout</span>
+        <div style={CARD_STYLES.blue}>
+          <span style={TEXT_STYLES.description}>poe2scout</span>
           <span style={{ fontSize: 14, fontWeight: "bold", color: "#4dabf7" }}>
             {(() => {
               const best = getBestPrice(result.poe2scout_price!.price!);
@@ -217,33 +301,17 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
 
       {/* Price Estimate (when no exact match - show Similar tier prices directly) */}
       {priceEstimate && (
-        <div style={{
-          background: priceEstimate.source === "similar"
-            ? "linear-gradient(135deg, rgba(100, 149, 237, 0.15) 0%, rgba(70, 130, 180, 0.1) 100%)"
-            : "linear-gradient(135deg, rgba(128, 128, 128, 0.15) 0%, rgba(105, 105, 105, 0.1) 100%)",
-          border: `1px solid ${priceEstimate.source === "similar" ? "rgba(100, 149, 237, 0.4)" : "rgba(128, 128, 128, 0.4)"}`,
-          borderRadius: 6,
-          padding: "10px 12px",
-          margin: "8px 16px",
-        }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 4,
-          }}>
+        <div style={priceEstimate.source === "similar" ? CARD_STYLES.similar : CARD_STYLES.base}>
+          <div style={{ ...FLEX_BETWEEN, marginBottom: 4 }}>
             <span style={{
-              fontSize: 10,
+              ...TEXT_STYLES.label,
               color: priceEstimate.source === "similar" ? "#6495ed" : "#888",
-              fontWeight: "bold"
             }}>
               {priceEstimate.source === "similar" ? "SIMILAR ITEMS" : "BASE ITEMS"}
             </span>
             {priceEstimate.rating && (
               <span style={{
-                fontSize: 9,
-                padding: "1px 4px",
-                borderRadius: 3,
+                ...BADGE_STYLES.pill,
                 backgroundColor: "rgba(255, 165, 0, 0.2)",
                 color: "#ffa500",
               }}>
@@ -252,8 +320,7 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
             )}
           </div>
           <div style={{
-            fontSize: 16,
-            fontWeight: "bold",
+            ...PRICE_STYLES.medium,
             color: priceEstimate.source === "similar" ? "#6495ed" : "#aaa"
           }}>
             {formatPrice(priceEstimate.min, priceEstimate.currency)}
@@ -261,7 +328,7 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
               <span> — {formatPrice(priceEstimate.max, priceEstimate.currency)}</span>
             )}
           </div>
-          <div style={{ fontSize: 9, color: "#888", marginTop: 4 }}>
+          <div style={TEXT_STYLES.muted}>
             Median: {formatPrice(priceEstimate.median, priceEstimate.currency)} • {priceEstimate.count} listings
           </div>
         </div>
@@ -269,55 +336,26 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
 
       {/* Quality-Adjusted Price Estimate */}
       {qualityAdjustedEstimate && (
-        <div style={{
-          background: "linear-gradient(135deg, rgba(64, 192, 87, 0.15) 0%, rgba(40, 167, 69, 0.1) 100%)",
-          border: "1px solid rgba(64, 192, 87, 0.4)",
-          borderRadius: 6,
-          padding: "10px 12px",
-          margin: "8px 16px",
-        }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 4,
-          }}>
-            <span style={{
-              fontSize: 10,
-              color: "#40c057",
-              fontWeight: "bold"
-            }}>
+        <div style={CARD_STYLES.green}>
+          <div style={{ ...FLEX_BETWEEN, marginBottom: 4 }}>
+            <span style={{ ...TEXT_STYLES.label, color: "#40c057" }}>
               EXPECTED FOR YOUR ITEM
             </span>
             <span style={{
-              fontSize: 9,
-              padding: "1px 4px",
-              borderRadius: 3,
-              backgroundColor: qualityAdjustedEstimate.confidence === "high"
-                ? "rgba(64, 192, 87, 0.2)"
-                : qualityAdjustedEstimate.confidence === "medium"
-                  ? "rgba(250, 176, 5, 0.2)"
-                  : "rgba(134, 142, 150, 0.2)",
-              color: qualityAdjustedEstimate.confidence === "high"
-                ? "#40c057"
-                : qualityAdjustedEstimate.confidence === "medium"
-                  ? "#fab005"
-                  : "#868e96",
+              ...BADGE_STYLES.pill,
+              backgroundColor: CONFIDENCE_COLORS[qualityAdjustedEstimate.confidence].bg,
+              color: CONFIDENCE_COLORS[qualityAdjustedEstimate.confidence].text,
             }}>
               {qualityAdjustedEstimate.confidence} conf.
             </span>
           </div>
-          <div style={{
-            fontSize: 18,
-            fontWeight: "bold",
-            color: "#40c057"
-          }}>
+          <div style={{ fontSize: 18, fontWeight: "bold", color: "#40c057" }}>
             {formatPrice(qualityAdjustedEstimate.minPrice, qualityAdjustedEstimate.currency)}
             {qualityAdjustedEstimate.minPrice !== qualityAdjustedEstimate.maxPrice && (
               <span> — {formatPrice(qualityAdjustedEstimate.maxPrice, qualityAdjustedEstimate.currency)}</span>
             )}
           </div>
-          <div style={{ fontSize: 9, color: "#888", marginTop: 4 }}>
+          <div style={TEXT_STYLES.muted}>
             {qualityAdjustedEstimate.reason} • {qualityAdjustedEstimate.basedOn}
           </div>
         </div>
@@ -332,27 +370,9 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
         const hasMultipleCurrencies = byCurrency.length > 1;
 
         return (
-          <div
-            key={tier.tier}
-            style={{
-              margin: "8px 16px",
-              border: `1px solid ${tierColor}33`,
-              borderRadius: 8,
-              overflow: "hidden",
-            }}
-          >
+          <div key={tier.tier} style={getTierCardStyle(tier.tier)}>
             {/* Tier Header - clickable */}
-            <div
-              onClick={() => toggleTier(tier.tier)}
-              style={{
-                background: `linear-gradient(135deg, ${tierColor}22 0%, ${tierColor}11 100%)`,
-                padding: "10px 12px",
-                cursor: "pointer",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+            <div onClick={() => toggleTier(tier.tier)} style={getTierHeaderStyle(tier.tier)}>
               <div>
                 <div style={{ fontSize: 10, color: tierColor, fontWeight: "bold", marginBottom: 2 }}>
                   {getTierLabel(tier.tier)}
@@ -364,11 +384,27 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
               <div style={{ textAlign: "right" }}>
                 {stats ? (
                   <>
-                    <div style={{ fontSize: 16, fontWeight: "bold", color: tierColor }}>
-                      {stats.min === stats.max
-                        ? formatPrice(stats.min, stats.currency)
-                        : `${formatPrice(stats.min, stats.currency)} — ${formatPrice(stats.max, stats.currency)}`
-                      }
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+                      <span style={{ fontSize: 16, fontWeight: "bold", color: tierColor }}>
+                        {stats.min === stats.max
+                          ? formatPrice(stats.min, stats.currency)
+                          : `${formatPrice(stats.min, stats.currency)} — ${formatPrice(stats.max, stats.currency)}`
+                        }
+                      </span>
+                      {/* Volatility indicator based on spread */}
+                      {(() => {
+                        const { volatility, spreadPercent } = analyzePriceVolatility(tier.listings);
+                        if (volatility === "high") {
+                          return (
+                            <TrendIndicator
+                              trend="up"
+                              changePercent={spreadPercent}
+                              size="small"
+                            />
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                     <div style={{ fontSize: 10, color: "#666" }}>
                       Med: {formatPrice(stats.median, stats.currency)} • Avg: {formatPrice(stats.average, stats.currency)} • {tier.total} listings
@@ -398,33 +434,18 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
 
             {/* Expanded content */}
             {isExpanded && tier.listings && tier.listings.length > 0 && (
-              <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 0" }}>
+              <div style={LISTING_STYLES.container}>
                 {/* Price distribution info */}
                 {stats && stats.p25 !== undefined && tier.listings.length >= 5 && (
-                  <div style={{
-                    padding: "6px 12px",
-                    marginBottom: 4,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    fontSize: 9,
-                    color: "#888",
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                  <div style={LISTING_STYLES.priceDistribution}>
+                    <div style={{ ...FLEX_BETWEEN, marginBottom: 2 }}>
                       <span>Price Distribution:</span>
                       {stats.volatility && (
                         <span style={{
-                          padding: "1px 4px",
-                          borderRadius: 3,
+                          ...BADGE_STYLES.pill,
                           fontSize: 8,
-                          backgroundColor: stats.volatility === "low"
-                            ? "rgba(64, 192, 87, 0.2)"
-                            : stats.volatility === "medium"
-                              ? "rgba(250, 176, 5, 0.2)"
-                              : "rgba(255, 100, 100, 0.2)",
-                          color: stats.volatility === "low"
-                            ? "#40c057"
-                            : stats.volatility === "medium"
-                              ? "#fab005"
-                              : "#ff6b6b",
+                          backgroundColor: VOLATILITY_COLORS[stats.volatility].bg,
+                          color: VOLATILITY_COLORS[stats.volatility].text,
                         }}>
                           {stats.volatility} volatility
                         </span>
@@ -450,17 +471,14 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
                 {tier.listings.slice(0, 5).map((listing, i) => {
                   const freshness = listing.indexed ? getListingFreshness(listing.indexed) : null;
                   const isStale = freshness && (freshness.freshness === "stale" || freshness.freshness === "very_stale");
+                  const hasBorder = i < Math.min(tier.listings.length - 1, 4);
 
                   return (
                     <div
                       key={i}
                       style={{
-                        padding: "6px 12px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        borderBottom: i < Math.min(tier.listings.length - 1, 4) ? "1px solid rgba(255,255,255,0.05)" : "none",
-                        // Slightly dim stale listings
+                        ...LISTING_STYLES.row,
+                        ...(hasBorder ? LISTING_STYLES.rowBorder : {}),
                         opacity: isStale ? 0.75 : 1,
                       }}
                     >
@@ -469,24 +487,15 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
                         {listing.online && (
                           <span
                             title={listing.online === "afk" ? "AFK" : "Online"}
-                            style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: "50%",
-                              backgroundColor: listing.online === "afk" ? "#f59f00" : "#51cf66",
-                              flexShrink: 0,
-                            }}
+                            style={LISTING_STYLES.onlineIndicator(listing.online as "online" | "afk")}
                           />
                         )}
-                        <span style={{ fontSize: 13, color: "#ffd700", fontWeight: "bold" }}>
+                        <span style={PRICE_STYLES.small}>
                           {formatPrice(listing.amount, listing.currency)}
                         </span>
                         {/* Stale warning icon */}
                         {freshness?.freshness === "very_stale" && (
-                          <span
-                            title={freshness.warning}
-                            style={{ fontSize: 10, color: "#ff6b6b" }}
-                          >
+                          <span title={freshness.warning} style={{ fontSize: 10, color: "#ff6b6b" }}>
                             ⚠
                           </span>
                         )}
@@ -494,7 +503,7 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         {/* Character name for /hideout */}
                         {listing.character && (
-                          <span style={{ fontSize: 9, color: "#888", maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span style={{ ...TEXT_STYLES.truncate, fontSize: 9, color: "#888", maxWidth: 60 }}>
                             {listing.character}
                           </span>
                         )}
@@ -510,7 +519,7 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
                         </span>
                         {listing.whisper && (
                           <button
-                            onClick={async (e) => {
+                            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
                               e.stopPropagation();
                               try {
                                 await navigator.clipboard.writeText(listing.whisper);
@@ -518,15 +527,7 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
                                 await call<[string], void>("copy_to_clipboard", listing.whisper);
                               }
                             }}
-                            style={{
-                              background: "rgba(255,215,0,0.15)",
-                              border: "1px solid rgba(255,215,0,0.3)",
-                              borderRadius: 4,
-                              padding: "2px 6px",
-                              cursor: "pointer",
-                              color: "#ffd700",
-                              fontSize: 9,
-                            }}
+                            style={BUTTON_STYLES.small}
                           >
                             <FaCopy size={8} />
                           </button>
@@ -536,7 +537,7 @@ export const TieredPriceDisplay: FC<TieredPriceDisplayProps> = ({ result, itemEv
                   );
                 })}
                 {tier.listings.length > 5 && (
-                  <div style={{ padding: "6px 12px", fontSize: 10, color: "#666", textAlign: "center" }}>
+                  <div style={LISTING_STYLES.moreIndicator}>
                     +{tier.listings.length - 5} more
                   </div>
                 )}

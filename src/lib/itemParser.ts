@@ -271,10 +271,32 @@ function parseRarity(text: string): ItemRarity {
  */
 function parseRequirements(lines: string[], item: ParsedItem): void {
   for (const line of lines) {
+    // Level: 62
     if (line.startsWith("Level:")) {
       const match = line.match(/Level:\s*(\d+)/);
       if (match) {
         item.levelRequired = parseInt(match[1]);
+      }
+    }
+    // Str: 155 or Str (unmet): 155
+    if (line.startsWith("Str")) {
+      const match = line.match(/Str(?:\s*\(unmet\))?:\s*(\d+)/);
+      if (match) {
+        item.strRequired = parseInt(match[1]);
+      }
+    }
+    // Dex: 100 or Dex (unmet): 100
+    if (line.startsWith("Dex")) {
+      const match = line.match(/Dex(?:\s*\(unmet\))?:\s*(\d+)/);
+      if (match) {
+        item.dexRequired = parseInt(match[1]);
+      }
+    }
+    // Int: 100 or Int (unmet): 100
+    if (line.startsWith("Int")) {
+      const match = line.match(/Int(?:\s*\(unmet\))?:\s*(\d+)/);
+      if (match) {
+        item.intRequired = parseInt(match[1]);
       }
     }
   }

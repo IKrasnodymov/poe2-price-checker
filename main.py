@@ -634,6 +634,141 @@ class Plugin:
         rate = self.currency_rates.get(currency_lower, 1.0)
         return amount * rate
 
+    async def get_poe2scout_price_history(self, item_name: str) -> Dict[str, Any]:
+        """
+        Fetch price history from poe2scout for an item.
+        Returns historical price data for trend analysis.
+        """
+        import decky
+
+        if not Plugin.settings.get("usePoe2Scout", True):
+            return {"success": False, "error": "poe2scout disabled in settings"}
+
+        try:
+            # First, find the item to get its ID
+            name_lower = item_name.lower().strip()
+            item = None
+
+            # Check cache first
+            if name_lower in Plugin.poe2scout_cache.get("items", {}):
+                item = Plugin.poe2scout_cache["items"][name_lower]
+            else:
+                # Fetch item to get ID
+                item = await Plugin.fetch_poe2scout_item(self, item_name)
+
+            if not item:
+                return {"success": False, "error": f"Item '{item_name}' not found on poe2scout"}
+
+            item_id = item.get("id")
+            if not item_id:
+                return {"success": False, "error": "No item ID available"}
+
+            # Fetch history from poe2scout
+            league = Plugin.settings.get("league", "Standard")
+            league_encoded = urllib.parse.quote(league)
+            url = f"https://poe2scout.com/api/items/{item_id}/history?league={league_encoded}&referenceCurrency=exalted"
+
+            decky.logger.info(f"Fetching poe2scout history for item {item_id}")
+
+            await Plugin.poe2scout_limiter.wait()
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "PoE2-Price-Checker-Decky/1.0 (contact@example.com)",
+                    "Accept": "application/json"
+                }
+            )
+
+            with urllib.request.urlopen(req, timeout=10, context=Plugin.ssl_context) as response:
+                data = json.loads(response.read().decode())
+
+            # Format history data
+            history = []
+            price_logs = data if isinstance(data, list) else data.get("priceLogs", [])
+            for log in price_logs:
+                if log:
+                    history.append({
+                        "timestamp": log.get("createdAt") or log.get("timestamp"),
+                        "price": log.get("value") or log.get("price", 0),
+                        "quantity": log.get("quantity", 0),
+                        "currency": "exalted"
+                    })
+
+            # Sort by timestamp descending (newest first)
+            history.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+            return {
+                "success": True,
+                "item_name": item_name,
+                "history": history[:30],  # Last 30 data points
+                "current_price": item.get("currentPrice", 0),
+                "icon": item.get("iconUrl"),
+            }
+
+        except Exception as e:
+            decky.logger.error(f"Failed to fetch poe2scout history: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_poe2scout_currency_pairs(self) -> Dict[str, Any]:
+        """
+        Fetch current currency exchange pairs from poe2scout.
+        Provides real-time exchange rates with volume data.
+        """
+        import decky
+
+        if not Plugin.settings.get("usePoe2Scout", True):
+            return {"success": False, "error": "poe2scout disabled in settings"}
+
+        try:
+            league = Plugin.settings.get("league", "Standard")
+            league_encoded = urllib.parse.quote(league)
+            url = f"https://poe2scout.com/api/currencyExchange/SnapshotPairs?league={league_encoded}"
+
+            decky.logger.info("Fetching poe2scout currency pairs")
+
+            await Plugin.poe2scout_limiter.wait()
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "PoE2-Price-Checker-Decky/1.0 (contact@example.com)",
+                    "Accept": "application/json"
+                }
+            )
+
+            with urllib.request.urlopen(req, timeout=10, context=Plugin.ssl_context) as response:
+                data = json.loads(response.read().decode())
+
+            # Format currency pairs
+            pairs = []
+            for pair in data if isinstance(data, list) else data.get("pairs", []):
+                pairs.append({
+                    "from_currency": pair.get("fromCurrency") or pair.get("payCurrency"),
+                    "to_currency": pair.get("toCurrency") or pair.get("getCurrency"),
+                    "rate": pair.get("rate") or pair.get("relativePrice", 0),
+                    "volume": pair.get("volume") or pair.get("valueTraded", 0),
+                })
+
+            # Update local currency rates based on pairs
+            for pair in pairs:
+                from_curr = pair.get("from_currency", "").lower()
+                to_curr = pair.get("to_currency", "").lower()
+                rate = pair.get("rate", 0)
+                if from_curr and to_curr and rate > 0:
+                    # If this pair converts something to chaos, update rate
+                    if to_curr in ["chaos", "chaos-orb"]:
+                        Plugin.currency_rates[from_curr] = rate
+                        decky.logger.info(f"Updated rate: {from_curr} = {rate} chaos")
+
+            return {
+                "success": True,
+                "pairs": pairs[:20],  # Top 20 pairs
+                "updated_rates": dict(Plugin.currency_rates),
+            }
+
+        except Exception as e:
+            decky.logger.error(f"Failed to fetch poe2scout currency pairs: {e}")
+            return {"success": False, "error": str(e)}
+
     async def get_currency_rates(self) -> Dict[str, Any]:
         """Return current currency rates"""
         return {"success": True, "rates": self.currency_rates}
@@ -1375,11 +1510,22 @@ class Plugin:
                 "success": False,
                 "error": f"Trade API Error {e.code}: {error_body[:100] if error_body else 'Unknown error'}"
             }
-        except Exception as e:
-            decky.logger.error(f"Trade API search error: {e}")
+        except urllib.error.URLError as e:
+            decky.logger.error(f"Trade API connection error: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": "Connection failed. Check your internet connection or try again later."
+            }
+        except Exception as e:
+            decky.logger.error(f"Trade API search error: {e}")
+            error_str = str(e)
+            if "timeout" in error_str.lower():
+                error_str = "Request timed out. Trade API may be slow - try again."
+            elif "SSL" in error_str or "certificate" in error_str.lower():
+                error_str = "SSL/Connection error. Try again in a moment."
+            return {
+                "success": False,
+                "error": error_str
             }
 
     async def fetch_trade_listings(
@@ -1510,10 +1656,20 @@ class Plugin:
                                     first_item_icon = item.get("item", {}).get("icon")
                                 listing = item.get("listing", {})
                                 price = listing.get("price", {})
+                                account_data = listing.get("account", {})
+                                # Extract character name for /hideout command
+                                character = account_data.get("lastCharacterName", "")
+                                # Extract online status
+                                online_data = account_data.get("online")
+                                online_status = None
+                                if online_data:
+                                    online_status = online_data.get("status") if isinstance(online_data, dict) else online_data
                                 all_listings.append({
                                     "amount": price.get("amount"),
                                     "currency": price.get("currency"),
-                                    "account": listing.get("account", {}).get("name", "Unknown"),
+                                    "account": account_data.get("name", "Unknown"),
+                                    "character": character,
+                                    "online": online_status,
                                     "whisper": listing.get("whisper", ""),
                                     "indexed": listing.get("indexed", ""),
                                 })
@@ -2083,9 +2239,16 @@ class Plugin:
                 decky.logger.error(traceback.format_exc())
                 continue
 
-        # If no tiers found anything
+        # If no tiers found anything, provide helpful error message
         if not result["tiers"]:
-            result["error"] = "No listings found in any tier"
+            if rarity == "Unique":
+                result["error"] = "No listings found for this unique item. It may be very rare or not commonly traded."
+            elif rarity == "Gem":
+                result["error"] = "No gem listings found. Try searching with different level/quality settings."
+            elif rarity == "Currency":
+                result["error"] = "Currency not found on trade. Use poe2scout or check in-game currency exchange."
+            else:
+                result["error"] = "No similar items found. Try disabling some modifier filters or checking if this item type is tradeable."
 
         # Cache the result (even if empty, to avoid repeated failed searches)
         if result["tiers"] or result["poe2scout_price"]:
