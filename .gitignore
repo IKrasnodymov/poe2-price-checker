@@ -31,8 +31,9 @@ backend/out/
 CLAUDE.md
 ssh-setup.md
 
-# Claude Code
-.claude/
+# Claude Code (keep commands for team)
+.claude/*
+!.claude/commands/
 
 # Qoder
 .qoder/
