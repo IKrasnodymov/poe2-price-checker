@@ -6,6 +6,6 @@
   "publish": {
     "tags": ["games", "utility", "path-of-exile"],
     "description": "Price check Path of Exile 2 items directly from Steam Deck using poe.ninja and Trade API",
-    "image": "https://raw.githubusercontent.com/ikrasnodymov/poe2-price-checker/main/assets/icon.png"
+    "image": "https://raw.githubusercontent.com/IKrasnodymov/poe2-price-checker/master/assets/icon.png"
   }
 }
