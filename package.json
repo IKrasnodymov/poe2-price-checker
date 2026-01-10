@@ -1,6 +1,6 @@
 {
   "name": "poe2-price-checker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "PoE2 Price Checker for Steam Deck - check item prices in Path of Exile 2",
   "type": "module",
   "scripts": {
